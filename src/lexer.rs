@@ -43,6 +43,7 @@ impl<'a> Lexer<'a> {
                     let identi = self.read_identifier(next_char);
                     match &identi as &str {
                         "let" => Token::LET,
+                        "fn" => Token::FUNCTION,
                         _ => Token::IDENT(identi),
                     }
                 } else {
@@ -188,6 +189,46 @@ mod tests {
             Some(Token::IDENT("five".to_string())),
             Some(Token::ASSIGN),
             Some(Token::INT(5)),
+            Some(Token::SEMICOLON),
+            Some(Token::EOF),
+        ];
+
+        for tok in expected_tokens {
+            assert_eq!(lexer.next_token(), tok);
+        }
+    }
+
+    #[test]
+    fn tokenize_fn() {
+        let input = r#"
+            let a = 5;
+            let add = fn(x, y) {
+                x + y;
+            };
+        "#;
+        let mut lexer = Lexer::new(input);
+
+        let expected_tokens = [
+            Some(Token::LET),
+            Some(Token::IDENT("a".to_string())),
+            Some(Token::ASSIGN),
+            Some(Token::INT(5)),
+            Some(Token::SEMICOLON),
+            Some(Token::LET),
+            Some(Token::IDENT("add".to_string())),
+            Some(Token::ASSIGN),
+            Some(Token::FUNCTION),
+            Some(Token::LPAREN),
+            Some(Token::IDENT("x".to_string())),
+            Some(Token::COMMA),
+            Some(Token::IDENT("y".to_string())),
+            Some(Token::RPAREN),
+            Some(Token::LBRACE),
+            Some(Token::IDENT("x".to_string())),
+            Some(Token::PLUS),
+            Some(Token::IDENT("y".to_string())),
+            Some(Token::SEMICOLON),
+            Some(Token::RBRACE),
             Some(Token::SEMICOLON),
             Some(Token::EOF),
         ];
