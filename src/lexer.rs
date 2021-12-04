@@ -30,27 +30,42 @@ impl<'a> Lexer<'a> {
         }
 
         let token = match next_char {
-            '=' => Token::ASSIGN,
-            ';' => Token::SEMICOLON,
-            '(' => Token::LPAREN,
-            ')' => Token::RPAREN,
-            ',' => Token::COMMA,
-            '+' => Token::PLUS,
-            '{' => Token::LBRACE,
-            '}' => Token::RBRACE,
+            '=' => {
+                if self.peek_next_char() == Some(&'=') {
+                    self.take_next_char();
+                    Token::Eq
+                } else {
+                    Token::Assign
+                }
+            }
+            '!' => {
+                if self.peek_next_char() == Some(&'=') {
+                    self.take_next_char();
+                    Token::NotEq
+                } else {
+                    Token::Illegal
+                }
+            }
+            ';' => Token::Semicolon,
+            '(' => Token::LParen,
+            ')' => Token::RParen,
+            ',' => Token::Comma,
+            '+' => Token::Plus,
+            '{' => Token::LBrace,
+            '}' => Token::RBrace,
             _ => {
                 if next_char.is_letter() {
                     let identi = self.read_identifier(next_char);
                     match &identi as &str {
-                        "let" => Token::LET,
-                        "fn" => Token::FUNCTION,
-                        _ => Token::IDENT(identi),
+                        "let" => Token::Let,
+                        "fn" => Token::Function,
+                        _ => Token::Iden(identi),
                     }
                 } else if let Some(num) = self.read_int(next_char) {
-                    Token::INT(num)
+                    Token::Int(num)
                 } else {
                     eprintln!("illegal {}", next_char);
-                    Token::ILLEGAL
+                    Token::Illegal
                 }
             }
         };
@@ -129,19 +144,19 @@ mod tests {
         let mut lexer = Lexer::new(input);
 
         let expected = [
-            Some(Token::ASSIGN),
-            Some(Token::PLUS),
-            Some(Token::LPAREN),
-            Some(Token::RPAREN),
-            Some(Token::LBRACE),
-            Some(Token::RBRACE),
-            Some(Token::COMMA),
-            Some(Token::SEMICOLON),
-            Some(Token::EOF),
+            Token::Assign,
+            Token::Plus,
+            Token::LParen,
+            Token::RParen,
+            Token::LBrace,
+            Token::RBrace,
+            Token::Comma,
+            Token::Semicolon,
+            Token::EOF,
         ];
 
         for exp in expected {
-            assert_eq!(lexer.next_token(), exp);
+            assert_eq!(lexer.next_token(), Some(exp));
         }
     }
 
@@ -155,21 +170,21 @@ mod tests {
 
         let mut lexer = Lexer::new(input);
         let expected_tokens = [
-            Some(Token::LET),
-            Some(Token::IDENT("val_a".to_string())),
-            Some(Token::ASSIGN),
-            Some(Token::INT(10)),
-            Some(Token::SEMICOLON),
-            Some(Token::LET),
-            Some(Token::IDENT("val_b".to_string())),
-            Some(Token::ASSIGN),
-            Some(Token::INT(20)),
-            Some(Token::SEMICOLON),
-            Some(Token::EOF),
+            Token::Let,
+            Token::Iden("val_a".to_string()),
+            Token::Assign,
+            Token::Int(10),
+            Token::Semicolon,
+            Token::Let,
+            Token::Iden("val_b".to_string()),
+            Token::Assign,
+            Token::Int(20),
+            Token::Semicolon,
+            Token::EOF,
         ];
 
         for tok in expected_tokens {
-            assert_eq!(lexer.next_token(), tok);
+            assert_eq!(lexer.next_token(), Some(tok));
         }
     }
 
@@ -179,16 +194,16 @@ mod tests {
         let mut lexer = Lexer::new(input);
 
         let expected_tokens = [
-            Some(Token::LET),
-            Some(Token::IDENT("five".to_string())),
-            Some(Token::ASSIGN),
-            Some(Token::INT(5)),
-            Some(Token::SEMICOLON),
-            Some(Token::EOF),
+            Token::Let,
+            Token::Iden("five".to_string()),
+            Token::Assign,
+            Token::Int(5),
+            Token::Semicolon,
+            Token::EOF,
         ];
 
         for tok in expected_tokens {
-            assert_eq!(lexer.next_token(), tok);
+            assert_eq!(lexer.next_token(), Some(tok));
         }
     }
 
@@ -203,32 +218,54 @@ mod tests {
         let mut lexer = Lexer::new(input);
 
         let expected_tokens = [
-            Some(Token::LET),
-            Some(Token::IDENT("a".to_string())),
-            Some(Token::ASSIGN),
-            Some(Token::INT(5)),
-            Some(Token::SEMICOLON),
-            Some(Token::LET),
-            Some(Token::IDENT("add".to_string())),
-            Some(Token::ASSIGN),
-            Some(Token::FUNCTION),
-            Some(Token::LPAREN),
-            Some(Token::IDENT("x".to_string())),
-            Some(Token::COMMA),
-            Some(Token::IDENT("y".to_string())),
-            Some(Token::RPAREN),
-            Some(Token::LBRACE),
-            Some(Token::IDENT("x".to_string())),
-            Some(Token::PLUS),
-            Some(Token::IDENT("y".to_string())),
-            Some(Token::SEMICOLON),
-            Some(Token::RBRACE),
-            Some(Token::SEMICOLON),
-            Some(Token::EOF),
+            Token::Let,
+            Token::Iden("a".to_string()),
+            Token::Assign,
+            Token::Int(5),
+            Token::Semicolon,
+            Token::Let,
+            Token::Iden("add".to_string()),
+            Token::Assign,
+            Token::Function,
+            Token::LParen,
+            Token::Iden("x".to_string()),
+            Token::Comma,
+            Token::Iden("y".to_string()),
+            Token::RParen,
+            Token::LBrace,
+            Token::Iden("x".to_string()),
+            Token::Plus,
+            Token::Iden("y".to_string()),
+            Token::Semicolon,
+            Token::RBrace,
+            Token::Semicolon,
+            Token::EOF,
         ];
 
         for tok in expected_tokens {
-            assert_eq!(lexer.next_token(), tok);
+            assert_eq!(lexer.next_token(), Some(tok));
+        }
+    }
+
+    #[test]
+    fn equal_not_equal() {
+        let input = r#"
+            a == b
+            a != b
+        "#;
+        let mut lexer = Lexer::new(input);
+
+        let expected_tokens = [
+            Token::Iden("a".to_string()),
+            Token::Eq,
+            Token::Iden("b".to_string()),
+            Token::Iden("a".to_string()),
+            Token::NotEq,
+            Token::Iden("b".to_string()),
+        ];
+
+        for tok in expected_tokens {
+            assert_eq!(lexer.next_token(), Some(tok));
         }
     }
 }

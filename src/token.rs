@@ -1,18 +1,20 @@
 #[derive(PartialEq, Eq, Debug)]
 pub enum Token {
-    ILLEGAL,
+    Illegal,
     EOF,
-    IDENT(String),
-    INT(i32),
-    ASSIGN,
-    PLUS,
-    COMMA,
-    SEMICOLON,
-    LPAREN,
-    RPAREN,
-    LBRACE, // {
-    RBRACE,
+    Iden(String),
+    Int(i32),
+    Assign,
+    Plus,
+    Comma,
+    Semicolon,
+    LParen,
+    RParen,
+    LBrace, // {
+    RBrace,
+    Eq,    // ==
+    NotEq, // !=
     // 예약어
-    FUNCTION,
-    LET,
+    Function,
+    Let,
 }
