@@ -46,12 +46,11 @@ impl<'a> Lexer<'a> {
                         "fn" => Token::FUNCTION,
                         _ => Token::IDENT(identi),
                     }
+                } else if let Some(num) = self.read_int(next_char) {
+                    Token::INT(num)
                 } else {
-                    if let Some(num) = self.read_int(next_char) {
-                        Token::INT(num)
-                    } else {
-                        Token::ILLEGAL
-                    }
+                    eprintln!("illegal {}", next_char);
+                    Token::ILLEGAL
                 }
             }
         };
@@ -64,7 +63,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn take_next_char(&mut self) -> Option<char> {
-        self.chars.next().clone()
+        self.chars.next()
     }
 
     fn read_identifier(&mut self, init: char) -> String {
@@ -114,12 +113,7 @@ impl IsLetter for Option<&char> {
 
 impl IsLetter for char {
     fn is_letter(&self) -> bool {
-        match *self {
-            'a'..='z' => true,
-            'A'..='Z' => true,
-            '_' => true,
-            _ => false,
-        }
+        matches!(*self, 'a'..='z' | 'A'..='Z' | '_')
     }
 }
 
