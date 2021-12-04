@@ -116,6 +116,7 @@ impl IsLetter for char {
         match *self {
             'a'..='z' => true,
             'A'..='Z' => true,
+            '_' => true,
             _ => false,
         }
     }
@@ -150,6 +151,34 @@ mod tests {
     }
 
     #[test]
+    fn multi_line() {
+        let input = r#"
+            let val_a = 10;
+            let val_b = 20;
+
+        "#;
+
+        let mut lexer = Lexer::new(input);
+        let expected_tokens = [
+            Some(Token::LET),
+            Some(Token::IDENT("val_a".to_string())),
+            Some(Token::ASSIGN),
+            Some(Token::INT(10)),
+            Some(Token::SEMICOLON),
+            Some(Token::LET),
+            Some(Token::IDENT("val_b".to_string())),
+            Some(Token::ASSIGN),
+            Some(Token::INT(20)),
+            Some(Token::SEMICOLON),
+            Some(Token::EOF),
+        ];
+
+        for tok in expected_tokens {
+            assert_eq!(lexer.next_token(), tok);
+        }
+    }
+
+    #[test]
     fn test_let_binding() {
         let input = "let five = 5;";
         let mut lexer = Lexer::new(input);
@@ -159,6 +188,8 @@ mod tests {
             Some(Token::IDENT("five".to_string())),
             Some(Token::ASSIGN),
             Some(Token::INT(5)),
+            Some(Token::SEMICOLON),
+            Some(Token::EOF),
         ];
 
         for tok in expected_tokens {
