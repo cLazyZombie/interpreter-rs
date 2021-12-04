@@ -6,6 +6,10 @@ pub enum Token {
     Int(i32),
     Assign,
     Plus,
+    Minus,
+    Bang,      // !
+    Asterrisk, // *
+    Slash,     // /
     Comma,
     Semicolon,
     LParen,
@@ -14,7 +18,14 @@ pub enum Token {
     RBrace,
     Eq,    // ==
     NotEq, // !=
+    LT,    // <
+    GT,    // >
     // 예약어
     Function,
     Let,
+    True,
+    False,
+    If,
+    Else,
+    Return,
 }

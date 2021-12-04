@@ -43,7 +43,7 @@ impl<'a> Lexer<'a> {
                     self.take_next_char();
                     Token::NotEq
                 } else {
-                    Token::Illegal
+                    Token::Bang
                 }
             }
             ';' => Token::Semicolon,
@@ -51,6 +51,11 @@ impl<'a> Lexer<'a> {
             ')' => Token::RParen,
             ',' => Token::Comma,
             '+' => Token::Plus,
+            '-' => Token::Minus,
+            '*' => Token::Asterrisk,
+            '/' => Token::Slash,
+            '<' => Token::LT,
+            '>' => Token::GT,
             '{' => Token::LBrace,
             '}' => Token::RBrace,
             _ => {
@@ -59,6 +64,11 @@ impl<'a> Lexer<'a> {
                     match &identi as &str {
                         "let" => Token::Let,
                         "fn" => Token::Function,
+                        "true" => Token::True,
+                        "false" => Token::False,
+                        "if" => Token::If,
+                        "else" => Token::Else,
+                        "return" => Token::Return,
                         _ => Token::Iden(identi),
                     }
                 } else if let Some(num) = self.read_int(next_char) {
