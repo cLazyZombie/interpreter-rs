@@ -26,6 +26,8 @@ impl Program {
 
 pub enum Statement {
     LetStatement(LetStatement),
+    IfStatement(IfStatement),
+    ReturnStatement(ReturnStatement),
 }
 
 pub struct LetStatement {
@@ -38,6 +40,10 @@ impl LetStatement {
         Self { identifier, value }
     }
 }
+
+pub struct IfStatement {}
+
+pub struct ReturnStatement {}
 
 pub struct Identifier {
     pub name: String,

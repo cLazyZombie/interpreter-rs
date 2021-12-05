@@ -125,6 +125,8 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use crate::ast::Statement;
+
     use super::*;
 
     #[test]
@@ -136,12 +138,15 @@ mod tests {
         let program = parser.parse_program().unwrap();
         assert_eq!(program.statement_count(), 1);
 
-        let statement = program.get_statement(0).unwrap();
-        match statement {
-            ast::Statement::LetStatement(let_statement) => {
-                assert_eq!(let_statement.identifier.name, "val".to_string());
-                assert_eq!(let_statement.value.value, 10);
+        check_let_statement(program.get_statement(0).unwrap(), "val");
+    }
+
+    fn check_let_statement(stmt: &Statement, name: &str) {
+        match stmt {
+            ast::Statement::LetStatement(let_stmt) => {
+                assert_eq!(let_stmt.identifier.name, name.to_string());
             }
+            _ => panic!("not let statement"),
         }
     }
 }
