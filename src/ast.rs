@@ -28,28 +28,42 @@ pub enum Statement {
     LetStatement(LetStatement),
     IfStatement(IfStatement),
     ReturnStatement(ReturnStatement),
+    ExpressionStatement(ExpressionStatement),
 }
 
 pub struct LetStatement {
     pub identifier: Identifier,
-    pub value: Expression,
+    pub expression: Expression,
 }
 
 impl LetStatement {
-    pub fn new(identifier: Identifier, value: Expression) -> Self {
-        Self { identifier, value }
+    pub fn new(identifier: Identifier, expression: Expression) -> Self {
+        Self {
+            identifier,
+            expression,
+        }
     }
 }
 
 pub struct IfStatement {}
 
 pub struct ReturnStatement {
-    pub value: Expression,
+    pub expression: Expression,
 }
 
 impl ReturnStatement {
-    pub fn new(value: Expression) -> Self {
-        Self { value }
+    pub fn new(expression: Expression) -> Self {
+        Self { expression }
+    }
+}
+
+pub struct ExpressionStatement {
+    pub expression: Expression,
+}
+
+impl ExpressionStatement {
+    pub fn new(expression: Expression) -> Self {
+        Self { expression }
     }
 }
 
