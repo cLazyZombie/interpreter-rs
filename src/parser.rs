@@ -117,21 +117,15 @@ impl Parser {
     }
 
     fn parse_expression(&mut self) -> Result<ast::Expression, ParseError> {
-        match self.cur_token() {
+        let ret = match self.cur_token() {
             Some(Token::Int(v)) => {
-                assert!(matches!(self.next_token(), Some(Token::Semicolon)));
                 let exp = ast::Expression::new(v.to_string());
-
-                self.advancd_token();
                 self.advancd_token();
 
                 Ok(exp)
             }
             Some(Token::Iden(iden)) => {
-                assert!(matches!(self.next_token(), Some(Token::Semicolon)));
                 let exp = ast::Expression::new(iden);
-
-                self.advancd_token();
                 self.advancd_token();
 
                 Ok(exp)
@@ -140,7 +134,15 @@ impl Parser {
                 let err = format!("Token::Int is expected, but {:?}", tok);
                 Err(ParseError::UnexpectedToken(err))
             }
+        };
+
+        if let Ok(_) = ret {
+            if matches!(self.cur_token(), Some(Token::Semicolon)) {
+                self.advancd_token();
+            }
         }
+
+        ret
     }
 }
 
