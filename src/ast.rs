@@ -26,9 +26,19 @@ impl Program {
 
 pub enum Statement {
     LetStatement(LetStatement),
-    IfStatement(IfStatement),
+    // IfStatement(IfStatement),
     ReturnStatement(ReturnStatement),
     ExpressionStatement(ExpressionStatement),
+}
+
+impl Statement {
+    pub fn to_string(&self) -> String {
+        match self {
+            Statement::LetStatement(let_stmt) => let_stmt.to_string(),
+            Statement::ReturnStatement(return_stmt) => return_stmt.to_string(),
+            Statement::ExpressionStatement(expression_stmt) => expression_stmt.to_string(),
+        }
+    }
 }
 
 pub struct LetStatement {
@@ -43,9 +53,13 @@ impl LetStatement {
             expression,
         }
     }
+
+    pub fn to_string(&self) -> String {
+        format!("let {} = {};", self.identifier.name, self.expression.value)
+    }
 }
 
-pub struct IfStatement {}
+// pub struct IfStatement {}
 
 pub struct ReturnStatement {
     pub expression: Expression,
@@ -54,6 +68,10 @@ pub struct ReturnStatement {
 impl ReturnStatement {
     pub fn new(expression: Expression) -> Self {
         Self { expression }
+    }
+
+    pub fn to_string(&self) -> String {
+        format!("return {};", self.expression.value)
     }
 }
 
@@ -64,6 +82,10 @@ pub struct ExpressionStatement {
 impl ExpressionStatement {
     pub fn new(expression: Expression) -> Self {
         Self { expression }
+    }
+
+    pub fn to_string(&self) -> String {
+        format!("{};", self.expression.value)
     }
 }
 
@@ -78,11 +100,11 @@ impl Identifier {
 }
 
 pub struct Expression {
-    pub value: i32,
+    pub value: String,
 }
 
 impl Expression {
-    pub fn new(value: i32) -> Self {
+    pub fn new(value: String) -> Self {
         Self { value }
     }
 }

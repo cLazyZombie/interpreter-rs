@@ -16,16 +16,12 @@ impl Parser {
     pub fn new(mut lexer: Lexer) -> Self {
         let mut tokens = Vec::new();
 
-        eprintln!("before parsing");
-
         while let Some(token) = lexer.next_token() {
             if matches!(token, Token::EOF) {
                 break;
             }
             tokens.push(token);
         }
-
-        eprintln!("start parsing");
 
         Self { tokens, cursor: 0 }
     }
@@ -46,8 +42,6 @@ impl Parser {
         let mut program = ast::Program::new();
 
         while let Some(token) = self.cur_token() {
-            self.advancd_token();
-
             match token {
                 Token::Let => {
                     let stmt = ast::Statement::LetStatement(self.parse_let_statement()?);
@@ -58,8 +52,9 @@ impl Parser {
                     program.add(stmt);
                 }
                 _ => {
-                    dbg!(token);
-                    todo!()
+                    let stmt =
+                        ast::Statement::ExpressionStatement(self.parse_expression_statement()?);
+                    program.add(stmt);
                 }
             }
         }
@@ -68,6 +63,8 @@ impl Parser {
     }
 
     fn parse_let_statement(&mut self) -> Result<ast::LetStatement, ParseError> {
+        self.advancd_token(); // let
+
         let identifier = self.parse_identifier()?;
 
         // assign
@@ -84,9 +81,17 @@ impl Parser {
     }
 
     fn parse_return_statement(&mut self) -> Result<ast::ReturnStatement, ParseError> {
+        self.advancd_token(); // return
+
         let expression = self.parse_expression()?;
         let return_stmt = ast::ReturnStatement::new(expression);
         Ok(return_stmt)
+    }
+
+    fn parse_expression_statement(&mut self) -> Result<ast::ExpressionStatement, ParseError> {
+        let expression = self.parse_expression()?;
+        let expression_stmt = ast::ExpressionStatement::new(expression);
+        Ok(expression_stmt)
     }
 
     fn parse_identifier(&mut self) -> Result<ast::Identifier, ParseError> {
@@ -112,11 +117,19 @@ impl Parser {
     }
 
     fn parse_expression(&mut self) -> Result<ast::Expression, ParseError> {
-        // tood. impl
         match self.cur_token() {
             Some(Token::Int(v)) => {
                 assert!(matches!(self.next_token(), Some(Token::Semicolon)));
-                let exp = ast::Expression::new(v);
+                let exp = ast::Expression::new(v.to_string());
+
+                self.advancd_token();
+                self.advancd_token();
+
+                Ok(exp)
+            }
+            Some(Token::Iden(iden)) => {
+                assert!(matches!(self.next_token(), Some(Token::Semicolon)));
+                let exp = ast::Expression::new(iden);
 
                 self.advancd_token();
                 self.advancd_token();
@@ -175,5 +188,29 @@ mod tests {
             ast::Statement::ReturnStatement(_ret_stmt) => {}
             _ => panic!("not return statement"),
         }
+    }
+
+    #[test]
+    fn expression_statement() {
+        let input = "a;";
+        let lexer = Lexer::new(input);
+        let parser = Parser::new(lexer);
+        let program = parser.parse_program().unwrap();
+        assert_eq!(program.statement_count(), 1);
+    }
+
+    #[test]
+    fn statement_to_string() {
+        let input = r#"
+            let a = 10;
+            a;
+            return a;
+        "#;
+
+        let lexer = Lexer::new(input);
+        let parser = Parser::new(lexer);
+
+        let program = parser.parse_program().unwrap();
+        assert_eq!(program.get_statement(0).unwrap().to_string(), "let a = 10;");
     }
 }
