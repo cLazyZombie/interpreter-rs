@@ -43,7 +43,15 @@ impl LetStatement {
 
 pub struct IfStatement {}
 
-pub struct ReturnStatement {}
+pub struct ReturnStatement {
+    pub value: Expression,
+}
+
+impl ReturnStatement {
+    pub fn new(value: Expression) -> Self {
+        Self { value }
+    }
+}
 
 pub struct Identifier {
     pub name: String,

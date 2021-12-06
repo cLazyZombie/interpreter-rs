@@ -50,9 +50,11 @@ impl Parser {
 
             match token {
                 Token::Let => {
-                    eprintln!("a");
                     let stmt = ast::Statement::LetStatement(self.parse_let_statement()?);
-                    eprintln!("b");
+                    program.add(stmt);
+                }
+                Token::Return => {
+                    let stmt = ast::Statement::ReturnStatement(self.parse_return_statement()?);
                     program.add(stmt);
                 }
                 _ => {
@@ -79,6 +81,12 @@ impl Parser {
 
         let let_statement = ast::LetStatement::new(identifier, expression);
         Ok(let_statement)
+    }
+
+    fn parse_return_statement(&mut self) -> Result<ast::ReturnStatement, ParseError> {
+        let expression = self.parse_expression()?;
+        let return_stmt = ast::ReturnStatement::new(expression);
+        Ok(return_stmt)
     }
 
     fn parse_identifier(&mut self) -> Result<ast::Identifier, ParseError> {
@@ -147,6 +155,25 @@ mod tests {
                 assert_eq!(let_stmt.identifier.name, name.to_string());
             }
             _ => panic!("not let statement"),
+        }
+    }
+
+    #[test]
+    fn return_statement() {
+        let input = "return 0;";
+        let lexer = Lexer::new(input);
+        let parser = Parser::new(lexer);
+
+        let program = parser.parse_program().unwrap();
+        assert_eq!(program.statement_count(), 1);
+
+        check_return_statement(program.get_statement(0).unwrap());
+    }
+
+    fn check_return_statement(stmt: &Statement) {
+        match stmt {
+            ast::Statement::ReturnStatement(_ret_stmt) => {}
+            _ => panic!("not return statement"),
         }
     }
 }
