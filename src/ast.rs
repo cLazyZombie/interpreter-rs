@@ -108,21 +108,36 @@ impl Identifier {
 pub enum Expression {
     Identifier(IdentifierExpression),
     Number(NumberExpression),
+    Infix(InfixExpression),
 }
 
 impl Expression {
-    pub fn prefix(identifier: Token) -> Option<Expression> {
-        match identifier {
+    pub fn prefix(token: Token) -> Option<Expression> {
+        match token {
             Token::Iden(name) => Some(Expression::Identifier(IdentifierExpression { name })),
             Token::Int(value) => Some(Expression::Number(NumberExpression { value })),
             _ => None,
         }
     }
 
+    pub fn infix(left: Expression, op: Token, right: Expression) -> Expression {
+        Expression::Infix(InfixExpression {
+            left: Box::new(left),
+            op,
+            right: Box::new(right),
+        })
+    }
+
     pub fn to_string(&self) -> String {
         match self {
             Expression::Identifier(identifier) => identifier.name.clone(),
             Expression::Number(number) => number.value.to_string(),
+            Expression::Infix(infix) => format!(
+                "{} {} {}",
+                infix.left.to_string(),
+                infix.op.to_string(),
+                infix.right.to_string()
+            ),
         }
     }
 }
@@ -133,6 +148,12 @@ pub struct IdentifierExpression {
 
 pub struct NumberExpression {
     value: i32,
+}
+
+pub struct InfixExpression {
+    left: Box<Expression>,
+    op: Token,
+    right: Box<Expression>,
 }
 
 // pub struct Expression {

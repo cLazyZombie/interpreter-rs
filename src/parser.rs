@@ -127,21 +127,39 @@ impl Parser {
         }
     }
 
-    fn parse_expression(&mut self, _precedence: Precedence) -> Result<ast::Expression, ParseError> {
-        let cur_token = self.cur_token();
-        if let Some(tok) = cur_token.clone() {
-            let expression = ast::Expression::prefix(tok);
-            if let Some(expression) = expression {
-                self.advancd_token();
-                if matches!(self.cur_token(), Some(Token::Semicolon)) {
-                    self.advancd_token();
+    fn parse_expression(&mut self, precedence: Precedence) -> Result<ast::Expression, ParseError> {
+        if let Some(tok) = self.cur_token() {
+            // prefix
+            let prefix = {
+                let expression = ast::Expression::prefix(tok.clone());
+                if let Some(expression) = expression {
+                    Ok(expression)
+                } else {
+                    let err = format!("expression token expected, but {:?}", tok);
+                    Err(ParseError::UnexpectedToken(err))
                 }
-
-                Ok(expression)
-            } else {
-                let err = format!("expression token expected, but {:?}", cur_token);
-                Err(ParseError::UnexpectedToken(err))
+            }?;
+            self.advancd_token();
+            if self.cur_token() == Some(Token::Semicolon) {
+                self.advancd_token();
             }
+
+            if let Some(cur_token) = self.cur_token() {
+                if cur_token.is_infix() {
+                    if let Some(cur_precedence) = cur_token.precedence() {
+                        if cur_precedence > precedence {
+                            self.advancd_token();
+
+                            let right_expression = self.parse_expression(cur_precedence)?;
+                            let infix_expression =
+                                ast::Expression::infix(prefix, cur_token, right_expression);
+                            return Ok(infix_expression);
+                        }
+                    }
+                }
+            }
+
+            Ok(prefix)
         } else {
             Err(ParseError::NoMoreToken("when parse expression".to_string()))
         }
@@ -234,8 +252,17 @@ mod tests {
 
         let lexer = Lexer::new(input);
         let parser = Parser::new(lexer);
-
         let program = parser.parse_program().unwrap();
         assert_eq!(program.get_statement(0).unwrap().to_string(), "let a = 10;");
+    }
+
+    #[test]
+    fn infix_expression() {
+        let input = "1 + 2;";
+        let lexer = Lexer::new(input);
+        let parser = Parser::new(lexer);
+        let program = parser.parse_program().unwrap();
+        let stmt = program.get_statement(0).unwrap();
+        assert_eq!(stmt.to_string(), "1 + 2;");
     }
 }
