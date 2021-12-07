@@ -12,6 +12,17 @@ pub enum ParseError {
     UnexpectedToken(String),
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
+pub enum Precedence {
+    Lowest,
+    Equals,      // ==
+    LessGreater, // < or >
+    Sum,         //+
+    Product,     // *
+    Prefix,      // -x or !x
+    Call,        // any_function(a)
+}
+
 impl Parser {
     pub fn new(mut lexer: Lexer) -> Self {
         let mut tokens = Vec::new();
@@ -74,7 +85,7 @@ impl Parser {
         }
         self.advancd_token();
 
-        let expression = self.parse_expression()?;
+        let expression = self.parse_expression(Precedence::Lowest)?;
 
         let let_statement = ast::LetStatement::new(identifier, expression);
         Ok(let_statement)
@@ -83,13 +94,13 @@ impl Parser {
     fn parse_return_statement(&mut self) -> Result<ast::ReturnStatement, ParseError> {
         self.advancd_token(); // return
 
-        let expression = self.parse_expression()?;
+        let expression = self.parse_expression(Precedence::Lowest)?;
         let return_stmt = ast::ReturnStatement::new(expression);
         Ok(return_stmt)
     }
 
     fn parse_expression_statement(&mut self) -> Result<ast::ExpressionStatement, ParseError> {
-        let expression = self.parse_expression()?;
+        let expression = self.parse_expression(Precedence::Lowest)?;
         let expression_stmt = ast::ExpressionStatement::new(expression);
         Ok(expression_stmt)
     }
@@ -116,33 +127,24 @@ impl Parser {
         }
     }
 
-    fn parse_expression(&mut self) -> Result<ast::Expression, ParseError> {
-        let ret = match self.cur_token() {
-            Some(Token::Int(v)) => {
-                let exp = ast::Expression::new(v.to_string());
+    fn parse_expression(&mut self, _precedence: Precedence) -> Result<ast::Expression, ParseError> {
+        let cur_token = self.cur_token();
+        if let Some(tok) = cur_token.clone() {
+            let expression = ast::Expression::prefix(tok);
+            if let Some(expression) = expression {
                 self.advancd_token();
+                if matches!(self.cur_token(), Some(Token::Semicolon)) {
+                    self.advancd_token();
+                }
 
-                Ok(exp)
-            }
-            Some(Token::Iden(iden)) => {
-                let exp = ast::Expression::new(iden);
-                self.advancd_token();
-
-                Ok(exp)
-            }
-            tok => {
-                let err = format!("Token::Int is expected, but {:?}", tok);
+                Ok(expression)
+            } else {
+                let err = format!("expression token expected, but {:?}", cur_token);
                 Err(ParseError::UnexpectedToken(err))
             }
-        };
-
-        if let Ok(_) = ret {
-            if matches!(self.cur_token(), Some(Token::Semicolon)) {
-                self.advancd_token();
-            }
+        } else {
+            Err(ParseError::NoMoreToken("when parse expression".to_string()))
         }
-
-        ret
     }
 }
 
@@ -199,6 +201,27 @@ mod tests {
         let parser = Parser::new(lexer);
         let program = parser.parse_program().unwrap();
         assert_eq!(program.statement_count(), 1);
+        check_expression_statement(program.get_statement(0).unwrap());
+        assert_eq!(program.get_statement(0).unwrap().to_string(), "a;");
+    }
+
+    #[test]
+    fn number_expression_statement() {
+        let input = "6;";
+        let lexer = Lexer::new(input);
+        let parser = Parser::new(lexer);
+        let program = parser.parse_program().unwrap();
+
+        assert_eq!(program.statement_count(), 1);
+        check_expression_statement(program.get_statement(0).unwrap());
+        assert_eq!(program.get_statement(0).unwrap().to_string(), "6;");
+    }
+
+    fn check_expression_statement(stmt: &Statement) {
+        match stmt {
+            ast::Statement::ExpressionStatement(_expr) => {}
+            _ => panic!("not expression statement"),
+        }
     }
 
     #[test]

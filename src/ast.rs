@@ -1,5 +1,7 @@
 #![allow(clippy::new_without_default)]
 
+use crate::token::Token;
+
 pub struct Program {
     statements: Vec<Statement>,
 }
@@ -55,7 +57,11 @@ impl LetStatement {
     }
 
     pub fn to_string(&self) -> String {
-        format!("let {} = {};", self.identifier.name, self.expression.value)
+        format!(
+            "let {} = {};",
+            self.identifier.name,
+            self.expression.to_string()
+        )
     }
 }
 
@@ -71,7 +77,7 @@ impl ReturnStatement {
     }
 
     pub fn to_string(&self) -> String {
-        format!("return {};", self.expression.value)
+        format!("return {};", self.expression.to_string())
     }
 }
 
@@ -85,7 +91,7 @@ impl ExpressionStatement {
     }
 
     pub fn to_string(&self) -> String {
-        format!("{};", self.expression.value)
+        format!("{};", self.expression.to_string())
     }
 }
 
@@ -99,12 +105,42 @@ impl Identifier {
     }
 }
 
-pub struct Expression {
-    pub value: String,
+pub enum Expression {
+    Identifier(IdentifierExpression),
+    Number(NumberExpression),
 }
 
 impl Expression {
-    pub fn new(value: String) -> Self {
-        Self { value }
+    pub fn prefix(identifier: Token) -> Option<Expression> {
+        match identifier {
+            Token::Iden(name) => Some(Expression::Identifier(IdentifierExpression { name })),
+            Token::Int(value) => Some(Expression::Number(NumberExpression { value })),
+            _ => None,
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Expression::Identifier(identifier) => identifier.name.clone(),
+            Expression::Number(number) => number.value.to_string(),
+        }
     }
 }
+
+pub struct IdentifierExpression {
+    name: String,
+}
+
+pub struct NumberExpression {
+    value: i32,
+}
+
+// pub struct Expression {
+//     pub value: String,
+// }
+
+// impl Expression {
+//     pub fn new(value: String) -> Self {
+//         Self { value }
+//     }
+// }
