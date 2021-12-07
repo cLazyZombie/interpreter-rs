@@ -30,7 +30,7 @@ impl Parser {
         self.tokens.get(self.cursor).cloned()
     }
 
-    fn next_token(&self) -> Option<Token> {
+    fn _next_token(&self) -> Option<Token> {
         self.tokens.get(self.cursor + 1).cloned()
     }
 
