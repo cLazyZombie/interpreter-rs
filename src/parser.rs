@@ -106,14 +106,10 @@ impl Parser {
     }
 
     fn parse_identifier(&mut self) -> Result<ast::Identifier, ParseError> {
-        let id_token = self.cur_token();
-        if id_token.is_none() {
-            return Err(ParseError::NoMoreToken(
-                "identifier token is missing".to_string(),
-            ));
-        }
+        let id_token = self
+            .cur_token()
+            .ok_or_else(|| ParseError::NoMoreToken("identifier token is missing".to_string()))?;
 
-        let id_token = id_token.unwrap();
         match id_token {
             Token::Iden(name) => {
                 let identifier = ast::Identifier::new(name);
@@ -128,44 +124,41 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<ast::Expression, ParseError> {
-        if let Some(tok) = self.cur_token() {
-            // prefix
-            let mut result = {
-                let expression = ast::Expression::prefix(tok.clone());
-                if let Some(expression) = expression {
-                    Ok(expression)
-                } else {
-                    let err = format!("expression token expected, but {:?}", tok);
-                    Err(ParseError::UnexpectedToken(err))
-                }
-            }?;
+        let tok = self
+            .cur_token()
+            .ok_or_else(|| ParseError::NoMoreToken("when parse expression".to_string()))?;
+
+        // prefix
+        let mut result = ast::Expression::prefix(tok.clone()).ok_or_else(|| {
+            let err = format!("expression token expected, but {:?}", tok);
+            ParseError::UnexpectedToken(err)
+        })?;
+
+        self.advancd_token();
+
+        // exit expression parsing if semicolon encountered
+        if self.cur_token() == Some(Token::Semicolon) {
             self.advancd_token();
-            if self.cur_token() == Some(Token::Semicolon) {
-                self.advancd_token();
-            }
-
-            while let Some(cur_token) = self.cur_token() {
-                if cur_token.is_infix() {
-                    if let Some(cur_precedence) = cur_token.precedence() {
-                        if cur_precedence > precedence {
-                            self.advancd_token();
-
-                            let right_expression = self.parse_expression(cur_precedence)?;
-                            let infix_expression =
-                                ast::Expression::infix(result, cur_token, right_expression);
-                            result = infix_expression;
-                            continue;
-                            // return Ok(infix_expression);
-                        }
-                    }
-                }
-                break;
-            }
-
-            Ok(result)
-        } else {
-            Err(ParseError::NoMoreToken("when parse expression".to_string()))
+            return Ok(result);
         }
+
+        while let Some(cur_token) = self.cur_token() {
+            if cur_token.is_infix() {
+                let cur_precedence = cur_token.precedence().unwrap(); // infix token should have precedencd
+                if cur_precedence > precedence {
+                    self.advancd_token();
+
+                    let right_expression = self.parse_expression(cur_precedence)?;
+                    let infix_expression =
+                        ast::Expression::infix(result, cur_token, right_expression);
+                    result = infix_expression;
+                    continue;
+                }
+            }
+            break;
+        }
+
+        Ok(result)
     }
 }
 
