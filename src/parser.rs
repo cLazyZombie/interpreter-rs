@@ -130,7 +130,7 @@ impl Parser {
     fn parse_expression(&mut self, precedence: Precedence) -> Result<ast::Expression, ParseError> {
         if let Some(tok) = self.cur_token() {
             // prefix
-            let prefix = {
+            let mut result = {
                 let expression = ast::Expression::prefix(tok.clone());
                 if let Some(expression) = expression {
                     Ok(expression)
@@ -144,7 +144,7 @@ impl Parser {
                 self.advancd_token();
             }
 
-            if let Some(cur_token) = self.cur_token() {
+            while let Some(cur_token) = self.cur_token() {
                 if cur_token.is_infix() {
                     if let Some(cur_precedence) = cur_token.precedence() {
                         if cur_precedence > precedence {
@@ -152,14 +152,17 @@ impl Parser {
 
                             let right_expression = self.parse_expression(cur_precedence)?;
                             let infix_expression =
-                                ast::Expression::infix(prefix, cur_token, right_expression);
-                            return Ok(infix_expression);
+                                ast::Expression::infix(result, cur_token, right_expression);
+                            result = infix_expression;
+                            continue;
+                            // return Ok(infix_expression);
                         }
                     }
                 }
+                break;
             }
 
-            Ok(prefix)
+            Ok(result)
         } else {
             Err(ParseError::NoMoreToken("when parse expression".to_string()))
         }
@@ -254,6 +257,8 @@ mod tests {
         let parser = Parser::new(lexer);
         let program = parser.parse_program().unwrap();
         assert_eq!(program.get_statement(0).unwrap().to_string(), "let a = 10;");
+        assert_eq!(program.get_statement(1).unwrap().to_string(), "a;");
+        assert_eq!(program.get_statement(2).unwrap().to_string(), "return a;");
     }
 
     #[test]
@@ -269,6 +274,22 @@ mod tests {
         check_number_expression(&infix_expression.left, 1);
         assert_eq!(infix_expression.op, Token::Plus);
         check_number_expression(&infix_expression.right, 2);
+    }
+
+    #[test]
+    fn multiple_infix_expression() {
+        let input = "1 + 2 - 3;";
+        let lexer = Lexer::new(input);
+        let parser = Parser::new(lexer);
+        let program = parser.parse_program().unwrap();
+        let expression_statement =
+            get_expression_statement(program.get_statement(0).unwrap()).unwrap();
+
+        let infix_expression = get_infix_expression(&expression_statement.expression).unwrap();
+        let left_infix_expression = get_infix_expression(&infix_expression.left).unwrap();
+        check_number_expression(&left_infix_expression.left, 1);
+        check_number_expression(&left_infix_expression.right, 2);
+        assert_eq!(left_infix_expression.op, Token::Plus);
     }
 
     fn get_expression_statement(statement: &Statement) -> Option<&ExpressionStatement> {
