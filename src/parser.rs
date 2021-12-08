@@ -168,7 +168,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::Statement;
+    use crate::ast::{Expression, ExpressionStatement, InfixExpression, Statement};
 
     use super::*;
 
@@ -262,7 +262,35 @@ mod tests {
         let lexer = Lexer::new(input);
         let parser = Parser::new(lexer);
         let program = parser.parse_program().unwrap();
-        let stmt = program.get_statement(0).unwrap();
-        assert_eq!(stmt.to_string(), "1 + 2;");
+        let expression_statement =
+            get_expression_statement(program.get_statement(0).unwrap()).unwrap();
+
+        let infix_expression = get_infix_expression(&expression_statement.expression).unwrap();
+        check_number_expression(&infix_expression.left, 1);
+        assert_eq!(infix_expression.op, Token::Plus);
+        check_number_expression(&infix_expression.right, 2);
+    }
+
+    fn get_expression_statement(statement: &Statement) -> Option<&ExpressionStatement> {
+        match statement {
+            Statement::ExpressionStatement(expression) => Some(expression),
+            _ => None,
+        }
+    }
+
+    fn get_infix_expression(expression: &Expression) -> Option<&InfixExpression> {
+        match expression {
+            Expression::Infix(infix) => Some(infix),
+            _ => None,
+        }
+    }
+
+    fn check_number_expression(expression: &Expression, value: i32) {
+        match expression {
+            Expression::Number(num) => {
+                assert_eq!(num.value, value);
+            }
+            _ => panic!("expected number expression, but {:?}", expression),
+        }
     }
 }

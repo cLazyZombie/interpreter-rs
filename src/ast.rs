@@ -105,6 +105,7 @@ impl Identifier {
     }
 }
 
+#[derive(Debug)]
 pub enum Expression {
     Identifier(IdentifierExpression),
     Number(NumberExpression),
@@ -142,18 +143,21 @@ impl Expression {
     }
 }
 
+#[derive(Debug)]
 pub struct IdentifierExpression {
-    name: String,
+    pub name: String,
 }
 
+#[derive(Debug)]
 pub struct NumberExpression {
-    value: i32,
+    pub value: i32,
 }
 
+#[derive(Debug)]
 pub struct InfixExpression {
-    left: Box<Expression>,
-    op: Token,
-    right: Box<Expression>,
+    pub left: Box<Expression>,
+    pub op: Token,
+    pub right: Box<Expression>,
 }
 
 // pub struct Expression {
