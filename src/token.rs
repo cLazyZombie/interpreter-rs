@@ -33,7 +33,7 @@ pub enum Token {
 }
 
 impl Token {
-    pub fn is_infix(&self) -> bool {
+    pub fn is_infix_op(&self) -> bool {
         match self {
             Token::Plus
             | Token::Minus
@@ -43,6 +43,13 @@ impl Token {
             | Token::NotEq
             | Token::LT
             | Token::GT => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_prefix_op(&self) -> bool {
+        match self {
+            Token::Minus | Token::Bang => true,
             _ => false,
         }
     }

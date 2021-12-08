@@ -109,6 +109,7 @@ impl Identifier {
 pub enum Expression {
     Identifier(IdentifierExpression),
     Number(NumberExpression),
+    Prefix(PrefixExpression),
     Infix(InfixExpression),
 }
 
@@ -133,14 +134,23 @@ impl Expression {
         match self {
             Expression::Identifier(identifier) => identifier.name.clone(),
             Expression::Number(number) => number.value.to_string(),
+            Expression::Prefix(prefix) => {
+                format!("{}{}", prefix.op.to_string(), prefix.exp.to_string())
+            }
             Expression::Infix(infix) => format!(
-                "{} {} {}",
+                "({}{}{})",
                 infix.left.to_string(),
                 infix.op.to_string(),
                 infix.right.to_string()
             ),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct PrefixExpression {
+    pub op: Token,
+    pub exp: Box<Expression>,
 }
 
 #[derive(Debug)]

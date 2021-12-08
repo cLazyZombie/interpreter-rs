@@ -1,4 +1,8 @@
-use crate::{ast, lexer::Lexer, token::Token};
+use crate::{
+    ast::{self, PrefixExpression},
+    lexer::Lexer,
+    token::Token,
+};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -123,18 +127,35 @@ impl Parser {
         }
     }
 
-    fn parse_expression(&mut self, precedence: Precedence) -> Result<ast::Expression, ParseError> {
+    fn parse_prefix_expression(&mut self) -> Result<ast::Expression, ParseError> {
         let tok = self
             .cur_token()
-            .ok_or_else(|| ParseError::NoMoreToken("when parse expression".to_string()))?;
+            .ok_or_else(|| ParseError::NoMoreToken("when parse prefix".to_string()))?;
 
-        // prefix
-        let mut result = ast::Expression::prefix(tok.clone()).ok_or_else(|| {
-            let err = format!("expression token expected, but {:?}", tok);
-            ParseError::UnexpectedToken(err)
-        })?;
+        let exp = if tok.is_prefix_op() {
+            self.advancd_token();
+            let exp = self.parse_expression(Precedence::Prefix)?;
+            let prefix = ast::Expression::Prefix(PrefixExpression {
+                op: tok,
+                exp: Box::new(exp),
+            });
 
-        self.advancd_token();
+            prefix
+        } else {
+            let result = ast::Expression::prefix(tok.clone()).ok_or_else(|| {
+                let err = format!("expression token expected, but {:?}", tok);
+                ParseError::UnexpectedToken(err)
+            })?;
+
+            self.advancd_token();
+            result
+        };
+
+        Ok(exp)
+    }
+
+    fn parse_expression(&mut self, precedence: Precedence) -> Result<ast::Expression, ParseError> {
+        let mut result = self.parse_prefix_expression()?;
 
         // exit expression parsing if semicolon encountered
         if self.cur_token() == Some(Token::Semicolon) {
@@ -143,7 +164,7 @@ impl Parser {
         }
 
         while let Some(cur_token) = self.cur_token() {
-            if cur_token.is_infix() {
+            if cur_token.is_infix_op() {
                 let cur_precedence = cur_token.precedence().unwrap(); // infix token should have precedencd
                 if cur_precedence > precedence {
                     self.advancd_token();
@@ -164,7 +185,9 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::{Expression, ExpressionStatement, InfixExpression, Statement};
+    use crate::ast::{
+        Expression, ExpressionStatement, InfixExpression, PrefixExpression, Statement,
+    };
 
     use super::*;
 
@@ -288,9 +311,29 @@ mod tests {
         check_number_expression(&infix_expression.right, 3);
     }
 
+    #[test]
+    fn prefix_operator_expression() {
+        let input = "-1;";
+        let lexer = Lexer::new(input);
+        let parser = Parser::new(lexer);
+        let program = parser.parse_program().unwrap();
+        let expression_statement =
+            get_expression_statement(program.get_statement(0).unwrap()).unwrap();
+        let prefix_expression = get_prefix_expression(&expression_statement.expression).unwrap();
+        assert_eq!(prefix_expression.op, Token::Minus);
+        check_number_expression(&prefix_expression.exp, 1);
+    }
+
     fn get_expression_statement(statement: &Statement) -> Option<&ExpressionStatement> {
         match statement {
             Statement::ExpressionStatement(expression) => Some(expression),
+            _ => None,
+        }
+    }
+
+    fn get_prefix_expression(expression: &Expression) -> Option<&PrefixExpression> {
+        match expression {
+            Expression::Prefix(prefix) => Some(prefix),
             _ => None,
         }
     }
