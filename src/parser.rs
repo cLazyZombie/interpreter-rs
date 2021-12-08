@@ -281,8 +281,11 @@ mod tests {
         let infix_expression = get_infix_expression(&expression_statement.expression).unwrap();
         let left_infix_expression = get_infix_expression(&infix_expression.left).unwrap();
         check_number_expression(&left_infix_expression.left, 1);
-        check_number_expression(&left_infix_expression.right, 2);
         assert_eq!(left_infix_expression.op, Token::Plus);
+        check_number_expression(&left_infix_expression.right, 2);
+
+        assert_eq!(infix_expression.op, Token::Minus);
+        check_number_expression(&infix_expression.right, 3);
     }
 
     fn get_expression_statement(statement: &Statement) -> Option<&ExpressionStatement> {
