@@ -138,7 +138,7 @@ impl Expression {
                 format!("{}{}", prefix.op.to_string(), prefix.exp.to_string())
             }
             Expression::Infix(infix) => format!(
-                "({}{}{})",
+                "({} {} {})",
                 infix.left.to_string(),
                 infix.op.to_string(),
                 infix.right.to_string()
@@ -169,13 +169,3 @@ pub struct InfixExpression {
     pub op: Token,
     pub right: Box<Expression>,
 }
-
-// pub struct Expression {
-//     pub value: String,
-// }
-
-// impl Expression {
-//     pub fn new(value: String) -> Self {
-//         Self { value }
-//     }
-// }

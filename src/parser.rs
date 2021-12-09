@@ -324,6 +324,24 @@ mod tests {
         check_number_expression(&prefix_expression.exp, 1);
     }
 
+    #[test]
+    fn test_to_string() {
+        let input = [
+            ("1 + 2 + 3;", "((1 + 2) + 3);"),
+            ("1 + 2 * 3;", "(1 + (2 * 3));"),
+            ("-1 + -2 / 3;", "(-1 + (-2 / 3));"),
+        ];
+
+        for i in input {
+            let lexer = Lexer::new(i.0);
+            let parser = Parser::new(lexer);
+            let program = parser.parse_program().unwrap();
+            let stmt = program.get_statement(0).unwrap();
+            let result_str = stmt.to_string();
+            assert_eq!(&result_str, i.1)
+        }
+    }
+
     fn get_expression_statement(statement: &Statement) -> Option<&ExpressionStatement> {
         match statement {
             Statement::ExpressionStatement(expression) => Some(expression),
