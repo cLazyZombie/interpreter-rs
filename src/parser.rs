@@ -305,15 +305,19 @@ mod tests {
 
     #[test]
     fn prefix_operator_expression() {
-        let input = "-1;";
-        let lexer = Lexer::new(input);
-        let parser = Parser::new(lexer);
-        let program = parser.parse_program().unwrap();
-        let expression_statement =
-            get_expression_statement(program.get_statement(0).unwrap()).unwrap();
+        let input = "-1;!a;";
+        let stmts = input_to_statements(input);
+        assert_eq!(stmts.len(), 2);
+
+        let expression_statement = get_expression_statement(&stmts[0]).unwrap();
         let prefix_expression = get_prefix_expression(&expression_statement.expression).unwrap();
         assert_eq!(prefix_expression.op, Token::Minus);
         check_number_expression(&prefix_expression.exp, 1);
+
+        let expression_statement = get_expression_statement(&stmts[1]).unwrap();
+        let prefix_expression = get_prefix_expression(&expression_statement.expression).unwrap();
+        assert_eq!(prefix_expression.op, Token::Bang);
+        check_identifier_expression(&prefix_expression.exp, "a");
     }
 
     #[test]
@@ -357,6 +361,15 @@ mod tests {
                 assert_eq!(num.value, value);
             }
             _ => panic!("expected number expression, but {:?}", expression),
+        }
+    }
+
+    fn check_identifier_expression(expression: &Expression, name: &str) {
+        match expression {
+            Expression::Identifier(iden) => {
+                assert_eq!(&iden.name, name);
+            }
+            _ => panic!("expected identifier expression, but {:?}", expression),
         }
     }
 
