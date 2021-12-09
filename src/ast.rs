@@ -114,7 +114,8 @@ pub enum Expression {
 }
 
 impl Expression {
-    pub fn prefix(token: Token) -> Option<Expression> {
+    /// single expression - ideitifier나 int 같은 그 자체로 expression이 될수 있는 것들
+    pub fn new_single_expression(token: Token) -> Option<Expression> {
         match token {
             Token::Iden(name) => Some(Expression::Identifier(IdentifierExpression { name })),
             Token::Int(value) => Some(Expression::Number(NumberExpression { value })),
@@ -122,11 +123,18 @@ impl Expression {
         }
     }
 
-    pub fn infix(left: Expression, op: Token, right: Expression) -> Expression {
+    pub fn new_infix_expression(left: Expression, op: Token, right: Expression) -> Expression {
         Expression::Infix(InfixExpression {
             left: Box::new(left),
             op,
             right: Box::new(right),
+        })
+    }
+
+    pub fn new_prefix_expression(op: Token, exp: Expression) -> Expression {
+        Expression::Prefix(PrefixExpression {
+            op,
+            exp: Box::new(exp),
         })
     }
 

@@ -1,8 +1,4 @@
-use crate::{
-    ast::{self, PrefixExpression},
-    lexer::Lexer,
-    token::Token,
-};
+use crate::{ast, lexer::Lexer, token::Token};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -135,14 +131,10 @@ impl Parser {
         let exp = if tok.is_prefix_op() {
             self.advancd_token();
             let exp = self.parse_expression(Precedence::Prefix)?;
-            let prefix = ast::Expression::Prefix(PrefixExpression {
-                op: tok,
-                exp: Box::new(exp),
-            });
-
+            let prefix = ast::Expression::new_prefix_expression(tok, exp);
             prefix
         } else {
-            let result = ast::Expression::prefix(tok.clone()).ok_or_else(|| {
+            let result = ast::Expression::new_single_expression(tok.clone()).ok_or_else(|| {
                 let err = format!("expression token expected, but {:?}", tok);
                 ParseError::UnexpectedToken(err)
             })?;
@@ -171,7 +163,7 @@ impl Parser {
 
                     let right_expression = self.parse_expression(cur_precedence)?;
                     let infix_expression =
-                        ast::Expression::infix(result, cur_token, right_expression);
+                        ast::Expression::new_infix_expression(result, cur_token, right_expression);
                     result = infix_expression;
                     continue;
                 }
