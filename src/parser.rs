@@ -325,12 +325,8 @@ mod tests {
         ];
 
         for i in input {
-            let lexer = Lexer::new(i.0);
-            let parser = Parser::new(lexer);
-            let program = parser.parse_program().unwrap();
-            let stmt = program.get_statement(0).unwrap();
-            let result_str = stmt.to_string();
-            assert_eq!(&result_str, i.1)
+            let stmts = input_to_statements(i.0);
+            assert_eq!(&stmts[0].to_string(), i.1);
         }
     }
 
@@ -362,5 +358,12 @@ mod tests {
             }
             _ => panic!("expected number expression, but {:?}", expression),
         }
+    }
+
+    fn input_to_statements(input: &str) -> Vec<Statement> {
+        let lexer = Lexer::new(input);
+        let parser = Parser::new(lexer);
+        let program = parser.parse_program().unwrap();
+        program.take_statement()
     }
 }

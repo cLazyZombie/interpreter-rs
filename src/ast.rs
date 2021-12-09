@@ -24,6 +24,10 @@ impl Program {
     pub fn get_statement(&self, idx: usize) -> Option<&Statement> {
         self.statements.get(idx)
     }
+
+    pub fn take_statement(self) -> Vec<Statement> {
+        self.statements
+    }
 }
 
 pub enum Statement {
