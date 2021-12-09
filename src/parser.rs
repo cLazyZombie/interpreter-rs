@@ -216,6 +216,14 @@ mod tests {
         check_return_statement(program.get_statement(0).unwrap());
     }
 
+    #[test]
+    fn boolean_expression() {
+        let input = "true;";
+        let stmts = input_to_statements(input);
+        let expression = get_expression_statement(&stmts[0]).unwrap();
+        check_bool_expression(&expression.expression, true);
+    }
+
     fn check_return_statement(stmt: &Statement) {
         match stmt {
             ast::Statement::ReturnStatement(_ret_stmt) => {}
@@ -370,6 +378,15 @@ mod tests {
                 assert_eq!(&iden.name, name);
             }
             _ => panic!("expected identifier expression, but {:?}", expression),
+        }
+    }
+
+    fn check_bool_expression(expression: &Expression, value: bool) {
+        match expression {
+            Expression::Bool(boolean) => {
+                assert_eq!(boolean.value, value);
+            }
+            _ => panic!("expected boolean expression, but {:?}", expression),
         }
     }
 

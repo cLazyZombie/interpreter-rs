@@ -113,6 +113,7 @@ impl Identifier {
 pub enum Expression {
     Identifier(IdentifierExpression),
     Number(NumberExpression),
+    Bool(BoolExpression),
     Prefix(PrefixExpression),
     Infix(InfixExpression),
 }
@@ -123,6 +124,8 @@ impl Expression {
         match token {
             Token::Iden(name) => Some(Expression::Identifier(IdentifierExpression { name })),
             Token::Int(value) => Some(Expression::Number(NumberExpression { value })),
+            Token::True => Some(Expression::Bool(BoolExpression { value: true })),
+            Token::False => Some(Expression::Bool(BoolExpression { value: false })),
             _ => None,
         }
     }
@@ -146,6 +149,7 @@ impl Expression {
         match self {
             Expression::Identifier(identifier) => identifier.name.clone(),
             Expression::Number(number) => number.value.to_string(),
+            Expression::Bool(boolean) => boolean.value.to_string(),
             Expression::Prefix(prefix) => {
                 format!("{}{}", prefix.op.to_string(), prefix.exp.to_string())
             }
@@ -173,6 +177,11 @@ pub struct IdentifierExpression {
 #[derive(Debug)]
 pub struct NumberExpression {
     pub value: i32,
+}
+
+#[derive(Debug)]
+pub struct BoolExpression {
+    pub value: bool,
 }
 
 #[derive(Debug)]
