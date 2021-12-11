@@ -369,6 +369,18 @@ mod tests {
         check_identifier_expression(&right.right, "c");
     }
 
+    #[test]
+    fn test_equal_not_equal() {
+        let input = "a == b;";
+        let stmts = input_to_statements(input);
+        let expression_stmt = get_expression_statement(&stmts[0]).unwrap();
+
+        let infix = get_infix_expression(&expression_stmt.expression).unwrap();
+        check_identifier_expression(&infix.left, "a");
+        assert_eq!(infix.op, Token::Eq);
+        check_identifier_expression(&infix.right, "b");
+    }
+
     fn get_expression_statement(statement: &Statement) -> Option<&ExpressionStatement> {
         match statement {
             Statement::ExpressionStatement(expression) => Some(expression),
