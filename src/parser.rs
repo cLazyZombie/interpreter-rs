@@ -133,6 +133,9 @@ impl Parser {
             let exp = self.parse_expression(Precedence::Prefix)?;
             let prefix = ast::Expression::new_prefix_expression(tok, exp);
             prefix
+        } else if tok == Token::LParen {
+            let exp = self.parse_group_expression()?;
+            exp
         } else {
             let result = ast::Expression::new_single_expression(tok.clone()).ok_or_else(|| {
                 let err = format!("expression token expected, but {:?}", tok);
@@ -144,6 +147,21 @@ impl Parser {
         };
 
         Ok(exp)
+    }
+
+    fn parse_group_expression(&mut self) -> Result<ast::Expression, ParseError> {
+        self.advancd_token(); // skip LParen
+
+        let inner_expression = self.parse_expression(Precedence::Lowest)?;
+
+        // remain token should be RParan ')'
+        if self.cur_token() != Some(Token::RParen) {
+            let msg = format!(") token is expected, but {:?}", self.cur_token());
+            Err(ParseError::UnexpectedToken(msg))
+        } else {
+            self.advancd_token();
+            Ok(inner_expression)
+        }
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<ast::Expression, ParseError> {
@@ -222,13 +240,6 @@ mod tests {
         let stmts = input_to_statements(input);
         let expression = get_expression_statement(&stmts[0]).unwrap();
         check_bool_expression(&expression.expression, true);
-    }
-
-    fn check_return_statement(stmt: &Statement) {
-        match stmt {
-            ast::Statement::ReturnStatement(_ret_stmt) => {}
-            _ => panic!("not return statement"),
-        }
     }
 
     #[test]
@@ -334,6 +345,7 @@ mod tests {
             ("1 + 2 + 3;", "((1 + 2) + 3);"),
             ("1 + 2 * 3;", "(1 + (2 * 3));"),
             ("-1 + -2 / 3;", "(-1 + (-2 / 3));"),
+            ("true;", "true;"),
         ];
 
         for i in input {
@@ -342,10 +354,32 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_group_expression() {
+        // let input = "a * (b + c) == true;";
+        let input = "a * (b + c);";
+        let stmts = input_to_statements(input);
+        let stmt = get_expression_statement(stmts.get(0).unwrap()).unwrap();
+        assert_eq!(stmt.to_string(), "(a * (b + c));");
+        let left = get_infix_expression(&stmt.expression).unwrap();
+
+        check_identifier_expression(&left.left, "a");
+        let right = get_infix_expression(&left.right).unwrap();
+        check_identifier_expression(&right.left, "b");
+        check_identifier_expression(&right.right, "c");
+    }
+
     fn get_expression_statement(statement: &Statement) -> Option<&ExpressionStatement> {
         match statement {
             Statement::ExpressionStatement(expression) => Some(expression),
             _ => None,
+        }
+    }
+
+    fn check_return_statement(stmt: &Statement) {
+        match stmt {
+            ast::Statement::ReturnStatement(_ret_stmt) => {}
+            _ => panic!("not return statement"),
         }
     }
 
