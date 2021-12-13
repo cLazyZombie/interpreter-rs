@@ -59,31 +59,29 @@ impl Parser {
         let mut statements = Vec::new();
 
         while let Some(token) = self.cur_token() {
-            match token {
-                Token::Let => {
-                    let stmt = ast::Statement::LetStatement(self.parse_let_statement()?);
-                    statements.push(stmt);
-                }
-                Token::Return => {
-                    let stmt = ast::Statement::ReturnStatement(self.parse_return_statement()?);
-                    statements.push(stmt);
-                }
-                Token::LBrace => {
-                    let stmt = ast::Statement::BlockStatement(self.parse_block_statement()?);
-                    statements.push(stmt);
-                }
-                Token::RBrace => {
-                    break;
-                }
-                _ => {
-                    let stmt =
-                        ast::Statement::ExpressionStatement(self.parse_expression_statement()?);
-                    statements.push(stmt);
-                }
+            if matches!(token, Token::RBrace) {
+                break;
             }
+
+            let statement = self.parse_statement()?;
+            statements.push(statement);
         }
 
         Ok(statements)
+    }
+
+    fn parse_statement(&mut self) -> Result<ast::Statement, ParseError> {
+        if let Some(token) = self.cur_token() {
+            let statement = match token {
+                Token::Let => ast::Statement::LetStatement(self.parse_let_statement()?),
+                Token::Return => ast::Statement::ReturnStatement(self.parse_return_statement()?),
+                Token::LBrace => ast::Statement::BlockStatement(self.parse_block_statement()?),
+                _ => ast::Statement::ExpressionStatement(self.parse_expression_statement()?),
+            };
+            Ok(statement)
+        } else {
+            Err(ParseError::NoMoreToken("to parse statement".to_string()))
+        }
     }
 
     fn parse_let_statement(&mut self) -> Result<ast::LetStatement, ParseError> {
@@ -462,9 +460,25 @@ mod tests {
 
     #[test]
     fn test_if_else_expression() {
-        let input = "if (a == 0) { a } else { b }";
+        let input = "if (a == 0) { a } else { b };";
         let stmts = input_to_statements(input);
-        let _stmt = get_expression_statement(&stmts[0]).unwrap();
+        let stmt = get_expression_statement(&stmts[0]).unwrap();
+
+        let if_expression = get_if_expression(&stmt.expression).unwrap();
+        let condition = get_infix_expression(&if_expression.condition).unwrap();
+        check_identifier_expression(&condition.left, "a");
+        assert_eq!(condition.op, Token::Eq);
+        check_number_expression(&condition.right, 0);
+
+        let consequence = &if_expression.consequence_statement;
+        assert_eq!(consequence.statements.len(), 1);
+        let expr = get_expression_statement(&consequence.statements[0]).unwrap();
+        check_identifier_expression(&expr.expression, "a");
+
+        let alternative = if_expression.alternative_statement.as_ref().unwrap();
+        assert_eq!(alternative.statements.len(), 1);
+        let expr = get_expression_statement(&alternative.statements[0]).unwrap();
+        check_identifier_expression(&expr.expression, "b");
     }
 
     fn get_if_expression(expression: &Expression) -> Option<&IfExpression> {
