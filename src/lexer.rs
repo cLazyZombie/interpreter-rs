@@ -95,7 +95,7 @@ impl<'a> Lexer<'a> {
         let mut s = String::new();
         s.push(init);
 
-        while self.peek_next_char().is_letter() {
+        while self.peek_next_char().is_letter() || self.peek_next_char().is_num() {
             s.push(self.take_next_char().unwrap());
         }
 
@@ -122,11 +122,12 @@ impl<'a> Lexer<'a> {
     }
 }
 
-trait IsLetter {
+trait CharTypeChecker {
     fn is_letter(&self) -> bool;
+    fn is_num(&self) -> bool;
 }
 
-impl IsLetter for Option<&char> {
+impl CharTypeChecker for Option<&char> {
     fn is_letter(&self) -> bool {
         if let Some(ch) = *self {
             ch.is_letter()
@@ -134,11 +135,23 @@ impl IsLetter for Option<&char> {
             false
         }
     }
+
+    fn is_num(&self) -> bool {
+        if let Some(ch) = *self {
+            ch.is_num()
+        } else {
+            false
+        }
+    }
 }
 
-impl IsLetter for char {
+impl CharTypeChecker for char {
     fn is_letter(&self) -> bool {
         matches!(*self, 'a'..='z' | 'A'..='Z' | '_')
+    }
+
+    fn is_num(&self) -> bool {
+        matches!(*self, '0'..='9')
     }
 }
 
@@ -175,7 +188,6 @@ mod tests {
         let input = r#"
             let val_a = 10;
             let val_b = 20;
-
         "#;
 
         let mut lexer = Lexer::new(input);
@@ -272,6 +284,24 @@ mod tests {
             Token::Iden("a".to_string()),
             Token::NotEq,
             Token::Iden("b".to_string()),
+        ];
+
+        for tok in expected_tokens {
+            assert_eq!(lexer.next_token(), Some(tok));
+        }
+    }
+
+    #[test]
+    fn function_name() {
+        let input = "fn my_func_1() {}";
+        let mut lexer = Lexer::new(input);
+        let expected_tokens = [
+            Token::Function,
+            Token::Iden("my_func_1".to_string()),
+            Token::LParen,
+            Token::RParen,
+            Token::LBrace,
+            Token::RBrace,
         ];
 
         for tok in expected_tokens {

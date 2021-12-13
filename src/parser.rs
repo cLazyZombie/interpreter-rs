@@ -209,15 +209,17 @@ impl Parser {
         let mut args = Vec::new();
         self.expect_token(Token::LParen)?;
         loop {
-            let arg = self.parse_identifier()?;
-            args.push(arg);
-
             if self.cur_token() == Some(Token::RParen) {
                 self.advancd_token();
                 break;
             }
 
-            self.expect_token(Token::Comma)?;
+            if !args.is_empty() {
+                self.expect_token(Token::Comma)?;
+            }
+
+            let arg = self.parse_identifier()?;
+            args.push(arg);
         }
 
         // block statement
@@ -507,15 +509,30 @@ mod tests {
 
     #[test]
     fn test_fn_expression() {
-        let input = "fn my_func(a, b, c) { return a + b; }";
+        let input = r#"
+            fn my_func_1() { return a + b; }
+            fn my_func_2(a) { return a + b; }
+            fn my_func_3(a, b, c) { return a + b; }
+        "#;
+
         let stmts = input_to_statements(input);
         let expression_stmt = get_expression_statement(&stmts[0]).unwrap();
-        let fn_expression = get_function_expression(&expression_stmt.expression).unwrap();
-        assert_eq!(fn_expression.name.name, "my_func");
-        assert_eq!(fn_expression.args.len(), 3);
-        assert_eq!(fn_expression.args[0].name, "a");
-        assert_eq!(fn_expression.args[1].name, "b");
-        assert_eq!(fn_expression.args[2].name, "c");
+        check_fn_expression(&expression_stmt.expression, "my_func_1", &[]);
+
+        let expression_stmt = get_expression_statement(&stmts[1]).unwrap();
+        check_fn_expression(&expression_stmt.expression, "my_func_2", &["a"]);
+
+        let expression_stmt = get_expression_statement(&stmts[2]).unwrap();
+        check_fn_expression(&expression_stmt.expression, "my_func_3", &["a", "b", "c"]);
+    }
+
+    fn check_fn_expression(expression: &Expression, name: &str, args: &[&str]) {
+        let fn_expression = get_function_expression(expression).unwrap();
+        assert_eq!(fn_expression.name.name, name);
+        assert_eq!(fn_expression.args.len(), args.len());
+        args.iter()
+            .zip(&fn_expression.args)
+            .for_each(|(a, b)| assert_eq!(*a, b.name));
     }
 
     fn check_let_statement(stmt: &Statement, name: &str) {
