@@ -154,6 +154,7 @@ pub enum Expression {
     Prefix(PrefixExpression),
     Infix(InfixExpression),
     If(IfExpression),
+    Function(FunctionExpression),
 }
 
 impl Expression {
@@ -195,6 +196,7 @@ impl Display for Expression {
             }
             Expression::Infix(infix) => write!(f, "({} {} {})", infix.left, infix.op, infix.right),
             Expression::If(if_expression) => write!(f, "{}", if_expression),
+            Expression::Function(fn_expression) => write!(f, "{}", fn_expression),
         }
     }
 }
@@ -260,5 +262,28 @@ impl Display for IfExpression {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct FunctionExpression {
+    pub name: Identifier,
+    pub args: Vec<Identifier>,
+    pub block_statement: BlockStatement,
+}
+
+impl Display for FunctionExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "fn {}(", self.name)?;
+        for (i, arg) in self.args.iter().enumerate() {
+            if i != 0 {
+                write!(f, ", ")?;
+            }
+
+            write!(f, "{}", arg.name)?;
+        }
+        write!(f, ")")?;
+        self.block_statement.fmt(f)
+        // write!(f, "{}", self.block_statement)
     }
 }

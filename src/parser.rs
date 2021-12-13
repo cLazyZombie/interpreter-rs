@@ -1,4 +1,8 @@
-use crate::{ast, lexer::Lexer, token::Token};
+use crate::{
+    ast::{self, FunctionExpression},
+    lexer::Lexer,
+    token::Token,
+};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -147,6 +151,8 @@ impl Parser {
             self.parse_group_expression()?
         } else if tok == Token::If {
             self.parse_if_expression()?
+        } else if tok == Token::Function {
+            self.parse_function_expression()?
         } else {
             let result = ast::Expression::new_single_expression(tok.clone()).ok_or_else(|| {
                 let err = format!("expression token expected, but {:?}", tok);
@@ -190,6 +196,40 @@ impl Parser {
         };
 
         Ok(ast::Expression::If(if_expression))
+    }
+
+    fn parse_function_expression(&mut self) -> Result<ast::Expression, ParseError> {
+        // fn
+        self.expect_token(Token::Function)?;
+
+        // name
+        let fn_name = self.parse_identifier()?;
+
+        // args
+        let mut args = Vec::new();
+        self.expect_token(Token::LParen)?;
+        loop {
+            let arg = self.parse_identifier()?;
+            args.push(arg);
+
+            if self.cur_token() == Some(Token::RParen) {
+                self.advancd_token();
+                break;
+            }
+
+            self.expect_token(Token::Comma)?;
+        }
+
+        // block statement
+        let block_statement = self.parse_block_statement()?;
+
+        let fn_expression = FunctionExpression {
+            name: fn_name,
+            args,
+            block_statement,
+        };
+
+        Ok(ast::Expression::Function(fn_expression))
     }
 
     fn parse_block_statement(&mut self) -> Result<ast::BlockStatement, ParseError> {
@@ -272,15 +312,6 @@ mod tests {
         check_let_statement(program.get_statement(0).unwrap(), "val");
     }
 
-    fn check_let_statement(stmt: &Statement, name: &str) {
-        match stmt {
-            ast::Statement::LetStatement(let_stmt) => {
-                assert_eq!(let_stmt.identifier.name, name.to_string());
-            }
-            _ => panic!("not let statement"),
-        }
-    }
-
     #[test]
     fn return_statement() {
         let input = "return 0;";
@@ -322,13 +353,6 @@ mod tests {
         assert_eq!(program.statement_count(), 1);
         check_expression_statement(program.get_statement(0).unwrap());
         assert_eq!(program.get_statement(0).unwrap().to_string(), "6;");
-    }
-
-    fn check_expression_statement(stmt: &Statement) {
-        match stmt {
-            ast::Statement::ExpressionStatement(_expr) => {}
-            _ => panic!("not expression statement"),
-        }
     }
 
     #[test]
@@ -481,9 +505,45 @@ mod tests {
         check_identifier_expression(&expr.expression, "b");
     }
 
+    #[test]
+    fn test_fn_expression() {
+        let input = "fn my_func(a, b, c) { return a + b; }";
+        let stmts = input_to_statements(input);
+        let expression_stmt = get_expression_statement(&stmts[0]).unwrap();
+        let fn_expression = get_function_expression(&expression_stmt.expression).unwrap();
+        assert_eq!(fn_expression.name.name, "my_func");
+        assert_eq!(fn_expression.args.len(), 3);
+        assert_eq!(fn_expression.args[0].name, "a");
+        assert_eq!(fn_expression.args[1].name, "b");
+        assert_eq!(fn_expression.args[2].name, "c");
+    }
+
+    fn check_let_statement(stmt: &Statement, name: &str) {
+        match stmt {
+            ast::Statement::LetStatement(let_stmt) => {
+                assert_eq!(let_stmt.identifier.name, name.to_string());
+            }
+            _ => panic!("not let statement"),
+        }
+    }
+
+    fn check_expression_statement(stmt: &Statement) {
+        match stmt {
+            ast::Statement::ExpressionStatement(_expr) => {}
+            _ => panic!("not expression statement"),
+        }
+    }
+
     fn get_if_expression(expression: &Expression) -> Option<&IfExpression> {
         match expression {
             Expression::If(if_expression) => Some(if_expression),
+            _ => None,
+        }
+    }
+
+    fn get_function_expression(expression: &Expression) -> Option<&FunctionExpression> {
+        match expression {
+            Expression::Function(fn_expression) => Some(fn_expression),
             _ => None,
         }
     }
