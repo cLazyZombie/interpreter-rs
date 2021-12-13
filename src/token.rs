@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::parser::Precedence;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -34,24 +36,21 @@ pub enum Token {
 
 impl Token {
     pub fn is_infix_op(&self) -> bool {
-        match self {
+        matches!(
+            self,
             Token::Plus
-            | Token::Minus
-            | Token::Asterrisk
-            | Token::Slash
-            | Token::Eq
-            | Token::NotEq
-            | Token::LT
-            | Token::GT => true,
-            _ => false,
-        }
+                | Token::Minus
+                | Token::Asterrisk
+                | Token::Slash
+                | Token::Eq
+                | Token::NotEq
+                | Token::LT
+                | Token::GT
+        )
     }
 
     pub fn is_prefix_op(&self) -> bool {
-        match self {
-            Token::Minus | Token::Bang => true,
-            _ => false,
-        }
+        matches!(self, Token::Minus | Token::Bang)
     }
 
     pub fn precedence(&self) -> Option<Precedence> {
@@ -63,36 +62,38 @@ impl Token {
             _ => None,
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Token::Illegal => "illegal".to_string(),
-            Token::EOF => "eof".to_string(),
-            Token::Iden(s) => s.clone(),
-            Token::Int(i) => i.to_string(),
-            Token::Assign => "=".to_string(),
-            Token::Plus => "+".to_string(),
-            Token::Minus => "-".to_string(),
-            Token::Bang => "!".to_string(),      // !
-            Token::Asterrisk => "*".to_string(), // *
-            Token::Slash => "/".to_string(),     // /
-            Token::Comma => ",".to_string(),
-            Token::Semicolon => ";".to_string(),
-            Token::LParen => "(".to_string(),
-            Token::RParen => ")".to_string(),
-            Token::LBrace => "{".to_string(), // {
-            Token::RBrace => "}".to_string(),
-            Token::Eq => "==".to_string(),    // ==
-            Token::NotEq => "!=".to_string(), // !=
-            Token::LT => "<".to_string(),     // <
-            Token::GT => ">".to_string(),     // >
-            Token::Function => "fn".to_string(),
-            Token::Let => "let".to_string(),
-            Token::True => "true".to_string(),
-            Token::False => "false".to_string(),
-            Token::If => "if".to_string(),
-            Token::Else => "else".to_string(),
-            Token::Return => "return".to_string(),
+            Token::Illegal => write!(f, "illegal"),
+            Token::EOF => write!(f, "eof"),
+            Token::Iden(s) => write!(f, "{}", s),
+            Token::Int(i) => write!(f, "{}", i),
+            Token::Assign => write!(f, "="),
+            Token::Plus => write!(f, "+"),
+            Token::Minus => write!(f, "-"),
+            Token::Bang => write!(f, "!"),
+            Token::Asterrisk => write!(f, "*"),
+            Token::Slash => write!(f, "/"),
+            Token::Comma => write!(f, ","),
+            Token::Semicolon => write!(f, ";"),
+            Token::LParen => write!(f, "("),
+            Token::RParen => write!(f, ")"),
+            Token::LBrace => write!(f, "{{"),
+            Token::RBrace => write!(f, "}}"),
+            Token::Eq => write!(f, "=="),
+            Token::NotEq => write!(f, "!="),
+            Token::LT => write!(f, "<"),
+            Token::GT => write!(f, ">"),
+            Token::Function => write!(f, "fn"),
+            Token::Let => write!(f, "let"),
+            Token::True => write!(f, "true"),
+            Token::False => write!(f, "false"),
+            Token::If => write!(f, "if"),
+            Token::Else => write!(f, "else"),
+            Token::Return => write!(f, "return"),
         }
     }
 }

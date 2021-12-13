@@ -1,5 +1,7 @@
 #![allow(clippy::new_without_default)]
 
+use std::fmt::Display;
+
 use crate::token::Token;
 
 pub struct Program {
@@ -7,10 +9,8 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new() -> Self {
-        Self {
-            statements: Vec::new(),
-        }
+    pub fn new(statements: Vec<Statement>) -> Self {
+        Self { statements }
     }
 
     pub fn add(&mut self, stmt: Statement) {
@@ -30,23 +30,27 @@ impl Program {
     }
 }
 
+#[derive(Debug)]
 pub enum Statement {
     LetStatement(LetStatement),
-    // IfStatement(IfStatement),
     ReturnStatement(ReturnStatement),
     ExpressionStatement(ExpressionStatement),
+    BlockStatement(BlockStatement),
 }
 
-impl Statement {
-    pub fn to_string(&self) -> String {
+impl Display for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Statement::LetStatement(let_stmt) => let_stmt.to_string(),
-            Statement::ReturnStatement(return_stmt) => return_stmt.to_string(),
-            Statement::ExpressionStatement(expression_stmt) => expression_stmt.to_string(),
+            Statement::LetStatement(let_stmt) => write!(f, "{}", let_stmt.to_string()),
+            Statement::ReturnStatement(return_stmt) => write!(f, "{}", return_stmt.to_string()),
+            Statement::ExpressionStatement(expression_stmt) => {
+                write!(f, "{}", expression_stmt.to_string())
+            }
+            Statement::BlockStatement(block_stmt) => write!(f, "{}", block_stmt.to_string()),
         }
     }
 }
-
+#[derive(Debug)]
 pub struct LetStatement {
     pub identifier: Identifier,
     pub expression: Expression,
@@ -59,18 +63,24 @@ impl LetStatement {
             expression,
         }
     }
+    // pub fn to_string(&self) -> String {
+    //     format!(
+    //         "let {} = {};",
+    //         self.identifier.name,
+    //         self.expression.to_string()
+    //     )
+    // }
+}
 
-    pub fn to_string(&self) -> String {
-        format!(
-            "let {} = {};",
-            self.identifier.name,
-            self.expression.to_string()
-        )
+impl Display for LetStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "let {} = {};", self.identifier, self.expression)
     }
 }
 
 // pub struct IfStatement {}
 
+#[derive(Debug)]
 pub struct ReturnStatement {
     pub expression: Expression,
 }
@@ -79,12 +89,15 @@ impl ReturnStatement {
     pub fn new(expression: Expression) -> Self {
         Self { expression }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        format!("return {};", self.expression.to_string())
+impl Display for ReturnStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "return {};", self.expression)
     }
 }
 
+#[derive(Debug)]
 pub struct ExpressionStatement {
     pub expression: Expression,
 }
@@ -93,12 +106,30 @@ impl ExpressionStatement {
     pub fn new(expression: Expression) -> Self {
         Self { expression }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        format!("{};", self.expression.to_string())
+impl Display for ExpressionStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{};", self.expression)
     }
 }
 
+#[derive(Debug)]
+pub struct BlockStatement {
+    pub statements: Vec<Statement>,
+}
+
+impl Display for BlockStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{{")?;
+        for stmt in &self.statements {
+            writeln!(f, "{}", stmt)?;
+        }
+        writeln!(f, "}}")
+    }
+}
+
+#[derive(Debug)]
 pub struct Identifier {
     pub name: String,
 }
@@ -109,6 +140,12 @@ impl Identifier {
     }
 }
 
+impl Display for Identifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 #[derive(Debug)]
 pub enum Expression {
     Identifier(IdentifierExpression),
@@ -116,6 +153,7 @@ pub enum Expression {
     Bool(BoolExpression),
     Prefix(PrefixExpression),
     Infix(InfixExpression),
+    If(IfExpression),
 }
 
 impl Expression {
@@ -144,21 +182,19 @@ impl Expression {
             exp: Box::new(exp),
         })
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expression::Identifier(identifier) => identifier.name.clone(),
-            Expression::Number(number) => number.value.to_string(),
-            Expression::Bool(boolean) => boolean.value.to_string(),
+            Expression::Identifier(identifier) => write!(f, "{}", identifier),
+            Expression::Number(number) => write!(f, "{}", number),
+            Expression::Bool(boolean) => write!(f, "{}", boolean),
             Expression::Prefix(prefix) => {
-                format!("{}{}", prefix.op.to_string(), prefix.exp.to_string())
+                write!(f, "{}{}", prefix.op, prefix.exp)
             }
-            Expression::Infix(infix) => format!(
-                "({} {} {})",
-                infix.left.to_string(),
-                infix.op.to_string(),
-                infix.right.to_string()
-            ),
+            Expression::Infix(infix) => write!(f, "({} {} {})", infix.left, infix.op, infix.right),
+            Expression::If(if_expression) => write!(f, "{}", if_expression),
         }
     }
 }
@@ -174,9 +210,21 @@ pub struct IdentifierExpression {
     pub name: String,
 }
 
+impl Display for IdentifierExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 #[derive(Debug)]
 pub struct NumberExpression {
     pub value: i32,
+}
+
+impl Display for NumberExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
 }
 
 #[derive(Debug)]
@@ -184,9 +232,33 @@ pub struct BoolExpression {
     pub value: bool,
 }
 
+impl Display for BoolExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
 #[derive(Debug)]
 pub struct InfixExpression {
     pub left: Box<Expression>,
     pub op: Token,
     pub right: Box<Expression>,
+}
+
+#[derive(Debug)]
+pub struct IfExpression {
+    pub condition: Box<Expression>,
+    pub consequence_statement: BlockStatement,
+    pub alternative_statement: Option<BlockStatement>,
+}
+
+impl Display for IfExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "if ({}) {}", self.condition, self.consequence_statement)?;
+        if let Some(alternative) = &self.alternative_statement {
+            write!(f, "else {}", alternative)?;
+        }
+
+        Ok(())
+    }
 }

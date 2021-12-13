@@ -50,27 +50,40 @@ impl Parser {
     }
 
     pub fn parse_program(mut self) -> Result<ast::Program, ParseError> {
-        let mut program = ast::Program::new();
+        let statements = self.parse_statements()?;
+
+        Ok(ast::Program::new(statements))
+    }
+
+    fn parse_statements(&mut self) -> Result<Vec<ast::Statement>, ParseError> {
+        let mut statements = Vec::new();
 
         while let Some(token) = self.cur_token() {
             match token {
                 Token::Let => {
                     let stmt = ast::Statement::LetStatement(self.parse_let_statement()?);
-                    program.add(stmt);
+                    statements.push(stmt);
                 }
                 Token::Return => {
                     let stmt = ast::Statement::ReturnStatement(self.parse_return_statement()?);
-                    program.add(stmt);
+                    statements.push(stmt);
+                }
+                Token::LBrace => {
+                    let stmt = ast::Statement::BlockStatement(self.parse_block_statement()?);
+                    statements.push(stmt);
+                }
+                Token::RBrace => {
+                    break;
                 }
                 _ => {
                     let stmt =
                         ast::Statement::ExpressionStatement(self.parse_expression_statement()?);
-                    program.add(stmt);
+                    statements.push(stmt);
                 }
             }
         }
 
-        Ok(program)
+        Ok(statements)
     }
 
     fn parse_let_statement(&mut self) -> Result<ast::LetStatement, ParseError> {
@@ -131,11 +144,11 @@ impl Parser {
         let exp = if tok.is_prefix_op() {
             self.advancd_token();
             let exp = self.parse_expression(Precedence::Prefix)?;
-            let prefix = ast::Expression::new_prefix_expression(tok, exp);
-            prefix
+            ast::Expression::new_prefix_expression(tok, exp)
         } else if tok == Token::LParen {
-            let exp = self.parse_group_expression()?;
-            exp
+            self.parse_group_expression()?
+        } else if tok == Token::If {
+            self.parse_if_expression()?
         } else {
             let result = ast::Expression::new_single_expression(tok.clone()).ok_or_else(|| {
                 let err = format!("expression token expected, but {:?}", tok);
@@ -150,18 +163,62 @@ impl Parser {
     }
 
     fn parse_group_expression(&mut self) -> Result<ast::Expression, ParseError> {
-        self.advancd_token(); // skip LParen
+        self.expect_token(Token::LParen)?;
 
         let inner_expression = self.parse_expression(Precedence::Lowest)?;
 
-        // remain token should be RParan ')'
-        if self.cur_token() != Some(Token::RParen) {
-            let msg = format!(") token is expected, but {:?}", self.cur_token());
-            Err(ParseError::UnexpectedToken(msg))
+        self.expect_token(Token::RParen)?;
+
+        Ok(inner_expression)
+    }
+
+    fn parse_if_expression(&mut self) -> Result<ast::Expression, ParseError> {
+        self.expect_token(Token::If)?;
+
+        let condition_expression = self.parse_group_expression()?;
+
+        let consequence_statement = self.parse_block_statement()?;
+
+        let alternative_statement = if let Ok(_else_token) = self.expect_token(Token::Else) {
+            Some(self.parse_block_statement()?)
         } else {
-            self.advancd_token();
-            Ok(inner_expression)
+            None
+        };
+
+        let if_expression = ast::IfExpression {
+            condition: Box::new(condition_expression),
+            consequence_statement,
+            alternative_statement,
+        };
+
+        Ok(ast::Expression::If(if_expression))
+    }
+
+    fn parse_block_statement(&mut self) -> Result<ast::BlockStatement, ParseError> {
+        self.expect_token(Token::LBrace)?;
+
+        let statements = self.parse_statements()?;
+
+        self.expect_token(Token::RBrace)?;
+
+        let block_statement = ast::BlockStatement { statements };
+
+        Ok(block_statement)
+    }
+
+    fn expect_token(&mut self, expected_tok: Token) -> Result<Token, ParseError> {
+        let cur_token = self.cur_token().ok_or_else(|| {
+            let msg = format!("expectd {:?}, but no more token", expected_tok);
+            ParseError::NoMoreToken(msg)
+        })?;
+
+        if cur_token != expected_tok {
+            let msg = format!("expected {:?}, but {:?}", expected_tok, cur_token);
+            return Err(ParseError::UnexpectedToken(msg));
         }
+
+        self.advancd_token();
+        Ok(cur_token)
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Result<ast::Expression, ParseError> {
@@ -170,6 +227,10 @@ impl Parser {
         // exit expression parsing if semicolon encountered
         if self.cur_token() == Some(Token::Semicolon) {
             self.advancd_token();
+            return Ok(result);
+        }
+
+        if self.cur_token() == Some(Token::RBrace) {
             return Ok(result);
         }
 
@@ -196,7 +257,7 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use crate::ast::{
-        Expression, ExpressionStatement, InfixExpression, PrefixExpression, Statement,
+        Expression, ExpressionStatement, IfExpression, InfixExpression, PrefixExpression, Statement,
     };
 
     use super::*;
@@ -379,6 +440,38 @@ mod tests {
         check_identifier_expression(&infix.left, "a");
         assert_eq!(infix.op, Token::Eq);
         check_identifier_expression(&infix.right, "b");
+    }
+
+    #[test]
+    fn test_if_expression() {
+        let input = "if (a == 0) { a };";
+        let stmts = input_to_statements(input);
+        let stmt = get_expression_statement(&stmts[0]).unwrap();
+
+        let if_expression = get_if_expression(&stmt.expression).unwrap();
+        let condition = get_infix_expression(&if_expression.condition).unwrap();
+        check_identifier_expression(&condition.left, "a");
+        assert_eq!(condition.op, Token::Eq);
+        check_number_expression(&condition.right, 0);
+
+        let consequence = &if_expression.consequence_statement;
+        assert_eq!(consequence.statements.len(), 1);
+        let expr = get_expression_statement(&consequence.statements[0]).unwrap();
+        check_identifier_expression(&expr.expression, "a");
+    }
+
+    #[test]
+    fn test_if_else_expression() {
+        let input = "if (a == 0) { a } else { b }";
+        let stmts = input_to_statements(input);
+        let _stmt = get_expression_statement(&stmts[0]).unwrap();
+    }
+
+    fn get_if_expression(expression: &Expression) -> Option<&IfExpression> {
+        match expression {
+            Expression::If(if_expression) => Some(if_expression),
+            _ => None,
+        }
     }
 
     fn get_expression_statement(statement: &Statement) -> Option<&ExpressionStatement> {
