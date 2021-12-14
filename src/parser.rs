@@ -580,13 +580,11 @@ mod tests {
 
     #[test]
     fn test_fn_call() {
-        // let input = r#"
-        //     my_func();
-        //     my_func(1, 2);
-        //     my_func2(my_func(1, 2), 3);
-        // "#;
-
-        let input = "my_func();";
+        let input = r#"
+            my_func();
+            my_func(1, 2);
+            my_func2(my_func(1, 2), 3);
+        "#;
 
         let stmts = input_to_statements(input);
 
@@ -594,6 +592,16 @@ mod tests {
         let call = get_call_expression(&stmt.expression).unwrap();
         assert_eq!(call.fn_name.name, "my_func");
         assert_eq!(call.args.len(), 0);
+
+        let stmt = get_expression_statement(&stmts[1]).unwrap();
+        let call = get_call_expression(&stmt.expression).unwrap();
+        assert_eq!(call.fn_name.name, "my_func");
+        assert_eq!(call.args.len(), 2);
+
+        let stmt = get_expression_statement(&stmts[2]).unwrap();
+        let call = get_call_expression(&stmt.expression).unwrap();
+        assert_eq!(call.fn_name.name, "my_func2");
+        assert_eq!(call.args.len(), 2);
     }
 
     fn get_call_expression(expression: &Expression) -> Option<&CallExpression> {
