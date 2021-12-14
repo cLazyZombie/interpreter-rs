@@ -155,6 +155,7 @@ pub enum Expression {
     Infix(InfixExpression),
     If(IfExpression),
     Function(FunctionExpression),
+    Call(CallExpression),
 }
 
 impl Expression {
@@ -183,6 +184,13 @@ impl Expression {
             exp: Box::new(exp),
         })
     }
+
+    pub fn new_fn_call(name: IdentifierExpression, args: Vec<Expression>) -> Expression {
+        Expression::Call(CallExpression {
+            fn_name: name,
+            args,
+        })
+    }
 }
 
 impl Display for Expression {
@@ -197,6 +205,7 @@ impl Display for Expression {
             Expression::Infix(infix) => write!(f, "({} {} {})", infix.left, infix.op, infix.right),
             Expression::If(if_expression) => write!(f, "{}", if_expression),
             Expression::Function(fn_expression) => write!(f, "{}", fn_expression),
+            Expression::Call(call_expression) => write!(f, "{}", call_expression),
         }
     }
 }
@@ -285,5 +294,25 @@ impl Display for FunctionExpression {
         write!(f, ")")?;
         self.block_statement.fmt(f)
         // write!(f, "{}", self.block_statement)
+    }
+}
+
+#[derive(Debug)]
+pub struct CallExpression {
+    pub fn_name: IdentifierExpression,
+    pub args: Vec<Expression>,
+}
+
+impl Display for CallExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}(", self.fn_name)?;
+        for (i, arg) in self.args.iter().enumerate() {
+            if i != 0 {
+                write!(f, ", ")?;
+            }
+
+            write!(f, "{}", arg)?;
+        }
+        write!(f, ")")
     }
 }

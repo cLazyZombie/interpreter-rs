@@ -261,6 +261,30 @@ impl Parser {
         Ok(cur_token)
     }
 
+    fn parse_call_argument_expression(&mut self) -> Result<Vec<ast::Expression>, ParseError> {
+        eprintln!("############## parse_call_argument_expression");
+
+        let mut result = Vec::new();
+        self.expect_token(Token::LParen)?;
+
+        while let Some(tok) = self.cur_token() {
+            if tok == Token::RParen {
+                break;
+            }
+
+            if !result.is_empty() {
+                self.expect_token(Token::Comma)?;
+            }
+
+            let expression = self.parse_expression(Precedence::Lowest)?;
+            result.push(expression);
+        }
+
+        self.expect_token(Token::RParen)?;
+
+        Ok(result)
+    }
+
     fn parse_expression(&mut self, precedence: Precedence) -> Result<ast::Expression, ParseError> {
         let mut result = self.parse_prefix_expression()?;
 
@@ -274,15 +298,42 @@ impl Parser {
             return Ok(result);
         }
 
+        // if self.cur_token() == Some(Token::Comma) {
+        //     return Ok(result);
+        // }
+
         while let Some(cur_token) = self.cur_token() {
+            if self.cur_token() == Some(Token::Semicolon) {
+                self.advancd_token();
+                return Ok(result);
+            }
+
             if cur_token.is_infix_op() {
                 let cur_precedence = cur_token.precedence().unwrap(); // infix token should have precedencd
                 if cur_precedence > precedence {
-                    self.advancd_token();
+                    let infix_expression = match cur_token {
+                        Token::LParen => {
+                            let args = self.parse_call_argument_expression()?;
+                            if let ast::Expression::Identifier(identifier) = result {
+                                ast::Expression::new_fn_call(identifier, args)
+                            } else {
+                                return Err(ParseError::UnexpectedToken(format!(
+                                    "identifier is expected, but {:?}",
+                                    result
+                                )));
+                            }
+                        }
+                        _ => {
+                            self.advancd_token();
+                            let right_expression = self.parse_expression(cur_precedence)?;
 
-                    let right_expression = self.parse_expression(cur_precedence)?;
-                    let infix_expression =
-                        ast::Expression::new_infix_expression(result, cur_token, right_expression);
+                            ast::Expression::new_infix_expression(
+                                result,
+                                cur_token,
+                                right_expression,
+                            )
+                        }
+                    };
                     result = infix_expression;
                     continue;
                 }
@@ -297,7 +348,8 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use crate::ast::{
-        Expression, ExpressionStatement, IfExpression, InfixExpression, PrefixExpression, Statement,
+        CallExpression, Expression, ExpressionStatement, IfExpression, InfixExpression,
+        PrefixExpression, Statement,
     };
 
     use super::*;
@@ -510,9 +562,9 @@ mod tests {
     #[test]
     fn test_fn_expression() {
         let input = r#"
-            fn my_func_1() { return a + b; }
-            fn my_func_2(a) { return a + b; }
-            fn my_func_3(a, b, c) { return a + b; }
+            fn my_func_1() { return a + b; };
+            fn my_func_2(a) { return a + b; };
+            fn my_func_3(a, b, c) { return a + b; };
         "#;
 
         let stmts = input_to_statements(input);
@@ -524,6 +576,31 @@ mod tests {
 
         let expression_stmt = get_expression_statement(&stmts[2]).unwrap();
         check_fn_expression(&expression_stmt.expression, "my_func_3", &["a", "b", "c"]);
+    }
+
+    #[test]
+    fn test_fn_call() {
+        // let input = r#"
+        //     my_func();
+        //     my_func(1, 2);
+        //     my_func2(my_func(1, 2), 3);
+        // "#;
+
+        let input = "my_func();";
+
+        let stmts = input_to_statements(input);
+
+        let stmt = get_expression_statement(&stmts[0]).unwrap();
+        let call = get_call_expression(&stmt.expression).unwrap();
+        assert_eq!(call.fn_name.name, "my_func");
+        assert_eq!(call.args.len(), 0);
+    }
+
+    fn get_call_expression(expression: &Expression) -> Option<&CallExpression> {
+        match expression {
+            Expression::Call(call_expression) => Some(call_expression),
+            _ => None,
+        }
     }
 
     fn check_fn_expression(expression: &Expression, name: &str, args: &[&str]) {

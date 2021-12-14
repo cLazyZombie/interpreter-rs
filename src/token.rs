@@ -46,6 +46,8 @@ impl Token {
                 | Token::NotEq
                 | Token::LT
                 | Token::GT
+                | Token::Function
+                | Token::LParen
         )
     }
 
@@ -59,6 +61,7 @@ impl Token {
             Token::LT | Token::GT => Some(Precedence::LessGreater),
             Token::Plus | Token::Minus => Some(Precedence::Sum),
             Token::Asterrisk | Token::Slash => Some(Precedence::Product),
+            Token::Function | Token::LParen => Some(Precedence::Call),
             _ => None,
         }
     }
