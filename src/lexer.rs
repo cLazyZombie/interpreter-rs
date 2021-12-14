@@ -1,6 +1,6 @@
 use std::{iter::Peekable, str::Chars};
 
-use crate::token::Token;
+use crate::token::{IdentToken, Token};
 
 pub struct Lexer<'a> {
     chars: Peekable<Chars<'a>>,
@@ -60,8 +60,8 @@ impl<'a> Lexer<'a> {
             '}' => Token::RBrace,
             _ => {
                 if next_char.is_letter() {
-                    let identi = self.read_identifier(next_char);
-                    match &identi as &str {
+                    let iden_str = self.read_identifier(next_char);
+                    match &iden_str as &str {
                         "let" => Token::Let,
                         "fn" => Token::Function,
                         "true" => Token::True,
@@ -69,7 +69,7 @@ impl<'a> Lexer<'a> {
                         "if" => Token::If,
                         "else" => Token::Else,
                         "return" => Token::Return,
-                        _ => Token::Iden(identi),
+                        _ => Token::Ident(IdentToken(iden_str)),
                     }
                 } else if let Some(num) = self.read_int(next_char) {
                     Token::Int(num)
@@ -193,12 +193,12 @@ mod tests {
         let mut lexer = Lexer::new(input);
         let expected_tokens = [
             Token::Let,
-            Token::Iden("val_a".to_string()),
+            Token::Ident(IdentToken("val_a".to_string())),
             Token::Assign,
             Token::Int(10),
             Token::Semicolon,
             Token::Let,
-            Token::Iden("val_b".to_string()),
+            Token::Ident(IdentToken("val_b".to_string())),
             Token::Assign,
             Token::Int(20),
             Token::Semicolon,
@@ -217,7 +217,7 @@ mod tests {
 
         let expected_tokens = [
             Token::Let,
-            Token::Iden("five".to_string()),
+            Token::Ident(IdentToken("five".to_string())),
             Token::Assign,
             Token::Int(5),
             Token::Semicolon,
@@ -241,23 +241,23 @@ mod tests {
 
         let expected_tokens = [
             Token::Let,
-            Token::Iden("a".to_string()),
+            Token::Ident(IdentToken("a".to_string())),
             Token::Assign,
             Token::Int(5),
             Token::Semicolon,
             Token::Let,
-            Token::Iden("add".to_string()),
+            Token::Ident(IdentToken("add".to_string())),
             Token::Assign,
             Token::Function,
             Token::LParen,
-            Token::Iden("x".to_string()),
+            Token::Ident(IdentToken("x".to_string())),
             Token::Comma,
-            Token::Iden("y".to_string()),
+            Token::Ident(IdentToken("y".to_string())),
             Token::RParen,
             Token::LBrace,
-            Token::Iden("x".to_string()),
+            Token::Ident(IdentToken("x".to_string())),
             Token::Plus,
-            Token::Iden("y".to_string()),
+            Token::Ident(IdentToken("y".to_string())),
             Token::Semicolon,
             Token::RBrace,
             Token::Semicolon,
@@ -278,12 +278,12 @@ mod tests {
         let mut lexer = Lexer::new(input);
 
         let expected_tokens = [
-            Token::Iden("a".to_string()),
+            Token::Ident(IdentToken("a".to_string())),
             Token::Eq,
-            Token::Iden("b".to_string()),
-            Token::Iden("a".to_string()),
+            Token::Ident(IdentToken("b".to_string())),
+            Token::Ident(IdentToken("a".to_string())),
             Token::NotEq,
-            Token::Iden("b".to_string()),
+            Token::Ident(IdentToken("b".to_string())),
         ];
 
         for tok in expected_tokens {
@@ -297,7 +297,7 @@ mod tests {
         let mut lexer = Lexer::new(input);
         let expected_tokens = [
             Token::Function,
-            Token::Iden("my_func_1".to_string()),
+            Token::Ident(IdentToken("my_func_1".to_string())),
             Token::LParen,
             Token::RParen,
             Token::LBrace,

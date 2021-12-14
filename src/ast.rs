@@ -2,7 +2,7 @@
 
 use std::fmt::Display;
 
-use crate::token::Token;
+use crate::token::{IdentToken, Token};
 
 pub struct Program {
     statements: Vec<Statement>,
@@ -52,16 +52,13 @@ impl Display for Statement {
 }
 #[derive(Debug)]
 pub struct LetStatement {
-    pub identifier: Identifier,
-    pub expression: Expression,
+    pub ident: IdentToken,
+    pub expr: Expr,
 }
 
 impl LetStatement {
-    pub fn new(identifier: Identifier, expression: Expression) -> Self {
-        Self {
-            identifier,
-            expression,
-        }
+    pub fn new(ident: IdentToken, expr: Expr) -> Self {
+        Self { ident, expr }
     }
     // pub fn to_string(&self) -> String {
     //     format!(
@@ -74,7 +71,7 @@ impl LetStatement {
 
 impl Display for LetStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "let {} = {};", self.identifier, self.expression)
+        write!(f, "let {} = {};", self.ident, self.expr)
     }
 }
 
@@ -82,11 +79,11 @@ impl Display for LetStatement {
 
 #[derive(Debug)]
 pub struct ReturnStatement {
-    pub expression: Expression,
+    pub expression: Expr,
 }
 
 impl ReturnStatement {
-    pub fn new(expression: Expression) -> Self {
+    pub fn new(expression: Expr) -> Self {
         Self { expression }
     }
 }
@@ -99,11 +96,11 @@ impl Display for ReturnStatement {
 
 #[derive(Debug)]
 pub struct ExpressionStatement {
-    pub expression: Expression,
+    pub expression: Expr,
 }
 
 impl ExpressionStatement {
-    pub fn new(expression: Expression) -> Self {
+    pub fn new(expression: Expr) -> Self {
         Self { expression }
     }
 }
@@ -129,83 +126,68 @@ impl Display for BlockStatement {
     }
 }
 
+// #[derive(Debug)]
+// pub struct Identifier {
+//     pub name: String,
+// }
+
+// impl Identifier {
+//     pub fn new(name: String) -> Self {
+//         Self { name }
+//     }
+// }
+
+// impl Display for Identifier {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "{}", self.name)
+//     }
+// }
+
 #[derive(Debug)]
-pub struct Identifier {
-    pub name: String,
-}
-
-impl Identifier {
-    pub fn new(name: String) -> Self {
-        Self { name }
-    }
-}
-
-impl Display for Identifier {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-#[derive(Debug)]
-pub enum Expression {
-    Identifier(IdentifierExpression),
+pub enum Expr {
+    Identifier(IdentExpr),
     Number(NumberExpression),
     Bool(BoolExpression),
     Prefix(PrefixExpression),
-    Infix(InfixExpression),
+    Infix(InfixExpr),
     If(IfExpression),
     Function(FunctionExpression),
     Call(CallExpression),
 }
 
-impl Expression {
+impl Expr {
     /// single expression - ideitifier나 int 같은 그 자체로 expression이 될수 있는 것들
-    pub fn new_single_expression(token: Token) -> Option<Expression> {
+    pub fn new_single_expression(token: Token) -> Option<Expr> {
         match token {
-            Token::Iden(name) => Some(Expression::Identifier(IdentifierExpression { name })),
-            Token::Int(value) => Some(Expression::Number(NumberExpression { value })),
-            Token::True => Some(Expression::Bool(BoolExpression { value: true })),
-            Token::False => Some(Expression::Bool(BoolExpression { value: false })),
+            Token::Ident(ident_tok) => Some(Expr::Identifier(IdentExpr { ident: ident_tok })),
+            Token::Int(value) => Some(Expr::Number(NumberExpression { value })),
+            Token::True => Some(Expr::Bool(BoolExpression { value: true })),
+            Token::False => Some(Expr::Bool(BoolExpression { value: false })),
             _ => None,
         }
     }
 
-    pub fn new_infix_expression(left: Expression, op: Token, right: Expression) -> Expression {
-        Expression::Infix(InfixExpression {
-            left: Box::new(left),
-            op,
-            right: Box::new(right),
-        })
-    }
-
-    pub fn new_prefix_expression(op: Token, exp: Expression) -> Expression {
-        Expression::Prefix(PrefixExpression {
+    pub fn new_prefix_expression(op: Token, exp: Expr) -> Expr {
+        Expr::Prefix(PrefixExpression {
             op,
             exp: Box::new(exp),
         })
     }
-
-    pub fn new_fn_call(name: IdentifierExpression, args: Vec<Expression>) -> Expression {
-        Expression::Call(CallExpression {
-            fn_name: name,
-            args,
-        })
-    }
 }
 
-impl Display for Expression {
+impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expression::Identifier(identifier) => write!(f, "{}", identifier),
-            Expression::Number(number) => write!(f, "{}", number),
-            Expression::Bool(boolean) => write!(f, "{}", boolean),
-            Expression::Prefix(prefix) => {
+            Expr::Identifier(identifier) => write!(f, "{}", identifier),
+            Expr::Number(number) => write!(f, "{}", number),
+            Expr::Bool(boolean) => write!(f, "{}", boolean),
+            Expr::Prefix(prefix) => {
                 write!(f, "{}{}", prefix.op, prefix.exp)
             }
-            Expression::Infix(infix) => write!(f, "({} {} {})", infix.left, infix.op, infix.right),
-            Expression::If(if_expression) => write!(f, "{}", if_expression),
-            Expression::Function(fn_expression) => write!(f, "{}", fn_expression),
-            Expression::Call(call_expression) => write!(f, "{}", call_expression),
+            Expr::Infix(infix) => write!(f, "({} {} {})", infix.left, infix.op, infix.right),
+            Expr::If(if_expression) => write!(f, "{}", if_expression),
+            Expr::Function(fn_expression) => write!(f, "{}", fn_expression),
+            Expr::Call(call_expression) => write!(f, "{}", call_expression),
         }
     }
 }
@@ -213,17 +195,17 @@ impl Display for Expression {
 #[derive(Debug)]
 pub struct PrefixExpression {
     pub op: Token,
-    pub exp: Box<Expression>,
+    pub exp: Box<Expr>,
 }
 
 #[derive(Debug)]
-pub struct IdentifierExpression {
-    pub name: String,
+pub struct IdentExpr {
+    pub ident: IdentToken,
 }
 
-impl Display for IdentifierExpression {
+impl Display for IdentExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.ident)
     }
 }
 
@@ -250,15 +232,25 @@ impl Display for BoolExpression {
 }
 
 #[derive(Debug)]
-pub struct InfixExpression {
-    pub left: Box<Expression>,
+pub struct InfixExpr {
+    pub left: Box<Expr>,
     pub op: Token,
-    pub right: Box<Expression>,
+    pub right: Box<Expr>,
+}
+
+impl InfixExpr {
+    pub fn new(left: Expr, op: Token, right: Expr) -> Self {
+        Self {
+            left: Box::new(left),
+            op,
+            right: Box::new(right),
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct IfExpression {
-    pub condition: Box<Expression>,
+    pub condition: Box<Expr>,
     pub consequence_statement: BlockStatement,
     pub alternative_statement: Option<BlockStatement>,
 }
@@ -276,8 +268,8 @@ impl Display for IfExpression {
 
 #[derive(Debug)]
 pub struct FunctionExpression {
-    pub name: Identifier,
-    pub args: Vec<Identifier>,
+    pub name: IdentToken,
+    pub args: Vec<IdentToken>,
     pub block_statement: BlockStatement,
 }
 
@@ -289,7 +281,7 @@ impl Display for FunctionExpression {
                 write!(f, ", ")?;
             }
 
-            write!(f, "{}", arg.name)?;
+            write!(f, "{}", arg)?;
         }
         write!(f, ")")?;
         self.block_statement.fmt(f)
@@ -299,8 +291,8 @@ impl Display for FunctionExpression {
 
 #[derive(Debug)]
 pub struct CallExpression {
-    pub fn_name: IdentifierExpression,
-    pub args: Vec<Expression>,
+    pub fn_name: IdentToken,
+    pub args: Vec<Expr>,
 }
 
 impl Display for CallExpression {

@@ -6,7 +6,7 @@ use crate::parser::Precedence;
 pub enum Token {
     Illegal,
     EOF,
-    Iden(String),
+    Ident(IdentToken),
     Int(i32),
     Assign,
     Plus,
@@ -72,7 +72,7 @@ impl Display for Token {
         match self {
             Token::Illegal => write!(f, "illegal"),
             Token::EOF => write!(f, "eof"),
-            Token::Iden(s) => write!(f, "{}", s),
+            Token::Ident(s) => write!(f, "{}", s.0),
             Token::Int(i) => write!(f, "{}", i),
             Token::Assign => write!(f, "="),
             Token::Plus => write!(f, "+"),
@@ -98,5 +98,23 @@ impl Display for Token {
             Token::Else => write!(f, "else"),
             Token::Return => write!(f, "return"),
         }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct IdentToken(pub String);
+
+impl Display for IdentToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct NumToken(pub i32);
+
+impl Display for NumToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
