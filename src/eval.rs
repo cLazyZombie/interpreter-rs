@@ -1,6 +1,6 @@
 use crate::{
     ast::{Expr, Node, Statement},
-    object::{IntObject, Object},
+    object::{IntObject, Object, BoolObject},
 };
 
 #[derive(Debug)]
@@ -21,6 +21,9 @@ pub fn eval(node: impl Into<Node>) -> Result<Object, EvalError> {
         Node::Expr(expr) => match expr {
             Expr::Number(num_expr) => {
                 return Ok(Object::Int(IntObject::new(num_expr.value)));
+            }
+            Expr::Bool(bool_expr) => {
+                return Ok(Object::Bool(BoolObject::new(bool_expr.value)));
             }
             _ => {
                 todo!()
@@ -45,6 +48,16 @@ mod tests {
         }
     }
 
+    #[test]
+    fn eval_bool() {
+        let inputs = [("true", true), ("false", false)];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_bool_object(&object, input.1);
+        }
+    }
+
     fn check_int_object(object: &Object, value: i32) {
         match object {
             Object::Int(int_object) => {
@@ -52,6 +65,17 @@ mod tests {
             }
             _ => {
                 panic!("expected int object, but {:?}", object);
+            }
+        }
+    }
+
+    fn check_bool_object(object: &Object, value: bool) {
+        match object {
+            Object::Bool(bool_object) => {
+                assert_eq!(bool_object.val, value);
+            }
+            _ => {
+                panic!("expected bool object, but {:?}", object);
             }
         }
     }
