@@ -58,7 +58,7 @@ impl TryInto<BoolObject> for Object {
         match self {
             Object::Null => Ok(BoolObject::new(false)),
             Object::Int(i) => {
-                let b = if i.val == 0 { false } else { true };
+                let b = i.val != 0;
                 Ok(BoolObject::new(b))
             }
             Object::Bool(b) => Ok(b),
@@ -136,9 +136,9 @@ impl Display for IntObject {
     }
 }
 
-impl Into<Object> for IntObject {
-    fn into(self) -> Object {
-        Object::Int(self)
+impl From<IntObject> for Object {
+    fn from(i: IntObject) -> Self {
+        Object::Int(i)
     }
 }
 
@@ -157,9 +157,9 @@ impl BoolObject {
     }
 }
 
-impl Into<Object> for BoolObject {
-    fn into(self) -> Object {
-        Object::Bool(self)
+impl From<BoolObject> for Object {
+    fn from(b: BoolObject) -> Self {
+        Object::Bool(b)
     }
 }
 
