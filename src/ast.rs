@@ -31,22 +31,34 @@ impl Program {
 }
 
 #[derive(Debug)]
-pub enum Node {
-    Stmt(Statement),
-    Expr(Expr),
+pub enum Node<'a> {
+    Stmt(&'a Statement),
+    Expr(&'a Expr),
 }
 
-impl From<Statement> for Node {
-    fn from(stmt: Statement) -> Self {
+impl<'a> From<&'a Statement> for Node<'a> {
+    fn from(stmt: &'a Statement) -> Self {
         Node::Stmt(stmt)
     }
 }
 
-impl From<Expr> for Node {
-    fn from(expr: Expr) -> Self {
+impl<'a> From<&'a Expr> for Node<'a> {
+    fn from(expr: &'a Expr) -> Self {
         Node::Expr(expr)
     }
 }
+
+// impl From<Statement> for Node {
+//     fn from(stmt: Statement) -> Self {
+//         Node::Stmt(stmt)
+//     }
+// }
+
+// impl From<Expr> for Node {
+//     fn from(expr: Expr) -> Self {
+//         Node::Expr(expr)
+//     }
+// }
 
 #[derive(Debug)]
 pub enum Statement {

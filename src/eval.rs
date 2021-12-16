@@ -1,18 +1,19 @@
 use crate::{
     ast::{Expr, Node, Statement},
-    object::{IntObject, Object, BoolObject},
+    object::{BoolObject, IntObject, Object},
+    token::Token,
 };
 
 #[derive(Debug)]
 pub enum EvalError {}
 
-pub fn eval(node: impl Into<Node>) -> Result<Object, EvalError> {
+pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
     let node: Node = node.into();
 
     match node {
         Node::Stmt(stmt) => match stmt {
             Statement::ExprStatement(expr_stmt) => {
-                return eval(expr_stmt.expr);
+                return eval(&expr_stmt.expr);
             }
             _ => {
                 todo!()
@@ -25,6 +26,26 @@ pub fn eval(node: impl Into<Node>) -> Result<Object, EvalError> {
             Expr::Bool(bool_expr) => {
                 return Ok(Object::Bool(BoolObject::new(bool_expr.value)));
             }
+            Expr::Prefix(prefix_expr) => match prefix_expr.op {
+                Token::Bang => {
+                    let obj = eval(&*prefix_expr.exp)?;
+                    match obj {
+                        Object::Int(v) => {
+                            let val = if v.val == 0 { false } else { true };
+                            return Ok(Object::Bool(BoolObject::new(!val)));
+                        }
+                        Object::Bool(v) => {
+                            return Ok(Object::Bool(BoolObject::new(!v.val)));
+                        }
+                        _ => {
+                            todo!()
+                        }
+                    }
+                }
+                _ => {
+                    todo!()
+                }
+            },
             _ => {
                 todo!()
             }
@@ -51,6 +72,22 @@ mod tests {
     #[test]
     fn eval_bool() {
         let inputs = [("true", true), ("false", false)];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_bool_object(&object, input.1);
+        }
+    }
+
+    #[test]
+    fn eval_prefix_op() {
+        let inputs = [
+            ("!true", false),
+            ("!false", true),
+            ("!5", false),
+            ("!!true", true),
+            ("!!5", true),
+        ];
 
         for input in inputs {
             let object = eval_input(input.0);
@@ -85,6 +122,6 @@ mod tests {
         let mut parser = Parser::new(lexer);
         let mut stmts = parser.parse_statements().unwrap();
         let stmt = stmts.remove(0);
-        eval(stmt).unwrap()
+        eval(&stmt).unwrap()
     }
 }

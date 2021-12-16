@@ -14,7 +14,7 @@ fn main() {
         match stmts {
             Ok(stmts) => {
                 for stmt in stmts {
-                    let object = eval(stmt);
+                    let object = eval(&stmt);
                     match object {
                         Ok(object) => {
                             println!("{}", object);
