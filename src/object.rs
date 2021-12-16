@@ -1,4 +1,7 @@
-use std::fmt::Display;
+use std::{
+    fmt::Display,
+    ops::{Add, Div, Mul, Sub},
+};
 
 use crate::eval::EvalError;
 
@@ -10,16 +13,16 @@ pub enum Object {
 }
 
 impl Object {
-    pub fn plus(&self, rhs: Self) -> Option<Object> {
-        match self {
-            Object::Int(int_object) => int_object.plus(rhs).map(|i| i.into()),
+    pub fn plus(&self, rhs: &Self) -> Option<Object> {
+        match (self, rhs) {
+            (Object::Int(lhs), Object::Int(rhs)) => Some((lhs + rhs).into()),
             _ => None,
         }
     }
 
-    pub fn minus(&self, rhs: Self) -> Option<Object> {
-        match self {
-            Object::Int(int_object) => int_object.minus(rhs).map(|i| i.into()),
+    pub fn minus(&self, rhs: &Self) -> Option<Object> {
+        match (self, rhs) {
+            (Object::Int(lhs), Object::Int(rhs)) => Some((lhs - rhs).into()),
             _ => None,
         }
     }
@@ -189,6 +192,38 @@ impl IntObject {
 
     pub fn not_eq(&self, rhs: Object) -> Option<BoolObject> {
         self.eq(rhs).map(|b| BoolObject::new(!b.val))
+    }
+}
+
+impl Add for &IntObject {
+    type Output = IntObject;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        IntObject::new(self.val + rhs.val)
+    }
+}
+
+impl Sub for &IntObject {
+    type Output = IntObject;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        IntObject::new(self.val - rhs.val)
+    }
+}
+
+impl Mul for &IntObject {
+    type Output = IntObject;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        IntObject::new(self.val * rhs.val)
+    }
+}
+
+impl Div for &IntObject {
+    type Output = IntObject;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        IntObject::new(self.val / rhs.val)
     }
 }
 

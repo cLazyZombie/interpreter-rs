@@ -45,11 +45,11 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
                 let right = eval(&*infix_expr.right)?;
                 match infix_expr.op {
                     Token::Plus => {
-                        let value = left.plus(right).ok_or(EvalError::Todo)?;
+                        let value = left.plus(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
                     Token::Minus => {
-                        let value = left.minus(right).ok_or(EvalError::Todo)?;
+                        let value = left.minus(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
                     Token::Asterrisk => {
