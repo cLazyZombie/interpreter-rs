@@ -54,8 +54,22 @@ impl<'a> Lexer<'a> {
             '-' => Token::Minus,
             '*' => Token::Asterrisk,
             '/' => Token::Slash,
-            '<' => Token::LT,
-            '>' => Token::GT,
+            '<' => {
+                if self.peek_next_char() == Some(&'=') {
+                    self.take_next_char();
+                    Token::LTEq
+                } else {
+                    Token::LT
+                }
+            }
+            '>' => {
+                if self.peek_next_char() == Some(&'=') {
+                    self.take_next_char();
+                    Token::GTEq
+                } else {
+                    Token::GT
+                }
+            }
             '{' => Token::LBrace,
             '}' => Token::RBrace,
             _ => {
@@ -283,6 +297,36 @@ mod tests {
             Token::Ident(IdentToken("b".to_string())),
             Token::Ident(IdentToken("a".to_string())),
             Token::NotEq,
+            Token::Ident(IdentToken("b".to_string())),
+        ];
+
+        for tok in expected_tokens {
+            assert_eq!(lexer.next_token(), Some(tok));
+        }
+    }
+
+    #[test]
+    fn less_greater() {
+        let input = r#"
+            a < b
+            a > b
+            a <= b
+            a >= b
+        "#;
+        let mut lexer = Lexer::new(input);
+
+        let expected_tokens = [
+            Token::Ident(IdentToken("a".to_string())),
+            Token::LT,
+            Token::Ident(IdentToken("b".to_string())),
+            Token::Ident(IdentToken("a".to_string())),
+            Token::GT,
+            Token::Ident(IdentToken("b".to_string())),
+            Token::Ident(IdentToken("a".to_string())),
+            Token::LTEq,
+            Token::Ident(IdentToken("b".to_string())),
+            Token::Ident(IdentToken("a".to_string())),
+            Token::GTEq,
             Token::Ident(IdentToken("b".to_string())),
         ];
 

@@ -47,9 +47,42 @@ impl Object {
     }
 
     pub fn not_eq(&self, rhs: Self) -> Option<Object> {
+        // todo. match (self, rhs) 형태는 어떤가?
         match self {
             Object::Int(int_object) => int_object.not_eq(rhs).map(|i| i.into()),
             Object::Bool(bool_object) => bool_object.not_eq(rhs).map(|b| b.into()),
+            _ => None,
+        }
+    }
+
+    pub fn lt(&self, rhs: Self) -> Option<Object> {
+        match (self, rhs) {
+            (Object::Int(lhs), Object::Int(rhs)) => Some(Object::Bool(BoolObject::new(lhs < &rhs))),
+            _ => None,
+        }
+    }
+
+    pub fn lt_eq(&self, rhs: Self) -> Option<Object> {
+        match (self, rhs) {
+            (Object::Int(lhs), Object::Int(rhs)) => {
+                Some(Object::Bool(BoolObject::new(lhs <= &rhs)))
+            }
+            _ => None,
+        }
+    }
+
+    pub fn gt(&self, rhs: Self) -> Option<Object> {
+        match (self, rhs) {
+            (Object::Int(lhs), Object::Int(rhs)) => Some(Object::Bool(BoolObject::new(lhs > &rhs))),
+            _ => None,
+        }
+    }
+
+    pub fn gt_eq(&self, rhs: Self) -> Option<Object> {
+        match (self, rhs) {
+            (Object::Int(lhs), Object::Int(rhs)) => {
+                Some(Object::Bool(BoolObject::new(lhs >= &rhs)))
+            }
             _ => None,
         }
     }
@@ -95,7 +128,7 @@ impl TryInto<IntObject> for Object {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IntObject {
     pub val: i32,
 }

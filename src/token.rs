@@ -24,6 +24,8 @@ pub enum Token {
     NotEq, // !=
     LT,    // <
     GT,    // >
+    LTEq,  // <=
+    GTEq,  // >=
     // 예약어
     Function,
     Let,
@@ -46,6 +48,8 @@ impl Token {
                 | Token::NotEq
                 | Token::LT
                 | Token::GT
+                | Token::LTEq
+                | Token::GTEq
                 | Token::Function
                 | Token::LParen
         )
@@ -58,7 +62,7 @@ impl Token {
     pub fn precedence(&self) -> Option<Precedence> {
         match self {
             Token::Eq | Token::NotEq => Some(Precedence::Equals),
-            Token::LT | Token::GT => Some(Precedence::LessGreater),
+            Token::LT | Token::GT | Token::LTEq | Token::GTEq => Some(Precedence::LessGreater),
             Token::Plus | Token::Minus => Some(Precedence::Sum),
             Token::Asterrisk | Token::Slash => Some(Precedence::Product),
             Token::Function | Token::LParen => Some(Precedence::Call),
@@ -90,6 +94,8 @@ impl Display for Token {
             Token::NotEq => write!(f, "!="),
             Token::LT => write!(f, "<"),
             Token::GT => write!(f, ">"),
+            Token::LTEq => write!(f, "<="),
+            Token::GTEq => write!(f, ">="),
             Token::Function => write!(f, "fn"),
             Token::Let => write!(f, "let"),
             Token::True => write!(f, "true"),

@@ -68,6 +68,22 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
                         let value = left.not_eq(right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
+                    Token::LT => {
+                        let value = left.lt(right).ok_or(EvalError::Todo)?;
+                        Ok(value)
+                    }
+                    Token::LTEq => {
+                        let value = left.lt_eq(right).ok_or(EvalError::Todo)?;
+                        Ok(value)
+                    }
+                    Token::GT => {
+                        let value = left.gt(right).ok_or(EvalError::Todo)?;
+                        Ok(value)
+                    }
+                    Token::GTEq => {
+                        let value = left.gt_eq(right).ok_or(EvalError::Todo)?;
+                        Ok(value)
+                    }
                     _ => Err(EvalError::InvalidInfixOperator {
                         operator_token: infix_expr.op.to_string(),
                     }),
@@ -165,6 +181,23 @@ mod tests {
             ("false == false", true),
             ("true == false", false),
             ("true != false", true),
+        ];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_bool_object(&object, input.1);
+        }
+    }
+
+    #[test]
+    fn eval_less_greater() {
+        let inputs = [
+            ("1 < 2", true),
+            ("1 < 1", false),
+            ("1 <= 1", true),
+            ("1 > 2", false),
+            ("1 > 1", false),
+            ("1 >= 1", true),
         ];
 
         for input in inputs {
