@@ -127,7 +127,7 @@ impl Parser {
 
         match id_token {
             Token::Ident(ident) => {
-                let identifier = ident.clone();
+                let identifier = ident;
                 self.advancd_token();
                 Ok(identifier)
             }

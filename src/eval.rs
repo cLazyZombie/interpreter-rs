@@ -8,6 +8,8 @@ use crate::{
 pub enum EvalError {
     FailedToConvertBoolError { original_type: String },
     FailedToConvertIntError { original_type: String },
+    InvalidInfixOperator { operator_token: String },
+    Todo,
 }
 
 pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
@@ -15,35 +17,54 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
 
     match node {
         Node::Stmt(stmt) => match stmt {
-            Statement::ExprStatement(expr_stmt) => {
-                return eval(&expr_stmt.expr);
-            }
+            Statement::ExprStatement(expr_stmt) => eval(&expr_stmt.expr),
             _ => {
                 todo!()
             }
         },
         Node::Expr(expr) => match expr {
-            Expr::Number(num_expr) => {
-                return Ok(Object::Int(IntObject::new(num_expr.value)));
-            }
-            Expr::Bool(bool_expr) => {
-                return Ok(Object::Bool(BoolObject::new(bool_expr.value)));
-            }
+            Expr::Number(num_expr) => Ok(Object::Int(IntObject::new(num_expr.value))),
+            Expr::Bool(bool_expr) => Ok(Object::Bool(BoolObject::new(bool_expr.value))),
             Expr::Prefix(prefix_expr) => match prefix_expr.op {
                 Token::Bang => {
                     let obj = eval(&*prefix_expr.exp)?;
                     let bool_obj: BoolObject = obj.try_into()?;
-                    return Ok(bool_obj.bang().into());
+                    Ok(bool_obj.bang().into())
                 }
                 Token::Minus => {
                     let obj = eval(&*prefix_expr.exp)?;
                     let int_obj: IntObject = obj.try_into()?;
-                    return Ok(int_obj.negate().into());
+                    Ok(int_obj.negate().into())
                 }
                 _ => {
                     todo!()
                 }
             },
+            Expr::Infix(infix_expr) => {
+                let left = eval(&*infix_expr.left)?;
+                let right = eval(&*infix_expr.right)?;
+                match infix_expr.op {
+                    Token::Plus => {
+                        let value = left.plus(right).ok_or(EvalError::Todo)?;
+                        Ok(value)
+                    }
+                    Token::Minus => {
+                        let value = left.minus(right).ok_or(EvalError::Todo)?;
+                        Ok(value)
+                    }
+                    Token::Asterrisk => {
+                        let value = left.asterrisk(right).ok_or(EvalError::Todo)?;
+                        Ok(value)
+                    }
+                    Token::Slash => {
+                        let value = left.slash(right).ok_or(EvalError::Todo)?;
+                        Ok(value)
+                    }
+                    _ => Err(EvalError::InvalidInfixOperator {
+                        operator_token: infix_expr.op.to_string(),
+                    }),
+                }
+            }
             _ => {
                 todo!()
             }
@@ -90,6 +111,28 @@ mod tests {
         for input in inputs {
             let object = eval_input(input.0);
             check_bool_object(&object, input.1);
+        }
+    }
+
+    #[test]
+    fn eval_infix_num_ops() {
+        let inputs = [
+            ("5 + 5 + 5 + 5 - 10", 10),
+            ("2 * 2 * 2 * 2 * 2", 32),
+            ("-50 + 100 + -50", 0),
+            ("5 * 2 + 10", 20),
+            ("5 + 2 * 10", 25),
+            ("20 + 2 * -10", 0),
+            ("50 / 2 * 2 + 10", 60),
+            ("2 * (5 + 10)", 30),
+            ("3 * 3 * 3 + 10", 37),
+            ("3 * (3 * 3) + 10", 37),
+            ("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50),
+        ];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_int_object(&object, input.1);
         }
     }
 

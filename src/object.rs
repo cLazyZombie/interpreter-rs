@@ -9,6 +9,36 @@ pub enum Object {
     Bool(BoolObject),
 }
 
+impl Object {
+    pub fn plus(&self, rhs: Self) -> Option<Object> {
+        match self {
+            Object::Int(int_object) => int_object.plus(rhs).map(|i| i.into()),
+            _ => None,
+        }
+    }
+
+    pub fn minus(&self, rhs: Self) -> Option<Object> {
+        match self {
+            Object::Int(int_object) => int_object.minus(rhs).map(|i| i.into()),
+            _ => None,
+        }
+    }
+
+    pub fn asterrisk(&self, rhs: Self) -> Option<Object> {
+        match self {
+            Object::Int(int_object) => int_object.asterrisk(rhs).map(|i| i.into()),
+            _ => None,
+        }
+    }
+
+    pub fn slash(&self, rhs: Self) -> Option<Object> {
+        match self {
+            Object::Int(int_object) => int_object.slash(rhs).map(|i| i.into()),
+            _ => None,
+        }
+    }
+}
+
 impl Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -61,6 +91,42 @@ impl IntObject {
 
     pub fn negate(&self) -> Self {
         Self { val: -self.val }
+    }
+
+    pub fn plus(&self, rhs: Object) -> Option<IntObject> {
+        let rhs: Result<IntObject, EvalError> = rhs.try_into();
+        if let Ok(rhs) = rhs {
+            Some(IntObject::new(self.val + rhs.val))
+        } else {
+            None
+        }
+    }
+
+    pub fn minus(&self, rhs: Object) -> Option<IntObject> {
+        let rhs: Result<IntObject, EvalError> = rhs.try_into();
+        if let Ok(rhs) = rhs {
+            Some(IntObject::new(self.val - rhs.val))
+        } else {
+            None
+        }
+    }
+
+    pub fn asterrisk(&self, rhs: Object) -> Option<IntObject> {
+        let rhs: Result<IntObject, EvalError> = rhs.try_into();
+        if let Ok(rhs) = rhs {
+            Some(IntObject::new(self.val * rhs.val))
+        } else {
+            None
+        }
+    }
+
+    pub fn slash(&self, rhs: Object) -> Option<IntObject> {
+        let rhs: Result<IntObject, EvalError> = rhs.try_into();
+        if let Ok(rhs) = rhs {
+            Some(IntObject::new(self.val / rhs.val))
+        } else {
+            None
+        }
     }
 }
 
