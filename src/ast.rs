@@ -31,6 +31,24 @@ impl Program {
 }
 
 #[derive(Debug)]
+pub enum Node {
+    Stmt(Statement),
+    Expr(Expr),
+}
+
+impl From<Statement> for Node {
+    fn from(stmt: Statement) -> Self {
+        Node::Stmt(stmt)
+    }
+}
+
+impl From<Expr> for Node {
+    fn from(expr: Expr) -> Self {
+        Node::Expr(expr)
+    }
+}
+
+#[derive(Debug)]
 pub enum Statement {
     LetStatement(LetStatement),
     ReturnStatement(ReturnStatement),
