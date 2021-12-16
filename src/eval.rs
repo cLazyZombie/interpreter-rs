@@ -5,7 +5,10 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub enum EvalError {}
+pub enum EvalError {
+    FailedToConvertBoolError { original_type: String },
+    FailedToConvertIntError { original_type: String },
+}
 
 pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
     let node: Node = node.into();
@@ -29,18 +32,13 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
             Expr::Prefix(prefix_expr) => match prefix_expr.op {
                 Token::Bang => {
                     let obj = eval(&*prefix_expr.exp)?;
-                    match obj {
-                        Object::Int(v) => {
-                            let val = if v.val == 0 { false } else { true };
-                            return Ok(Object::Bool(BoolObject::new(!val)));
-                        }
-                        Object::Bool(v) => {
-                            return Ok(Object::Bool(BoolObject::new(!v.val)));
-                        }
-                        _ => {
-                            todo!()
-                        }
-                    }
+                    let bool_obj: BoolObject = obj.try_into()?;
+                    return Ok(bool_obj.bang().into());
+                }
+                Token::Minus => {
+                    let obj = eval(&*prefix_expr.exp)?;
+                    let int_obj: IntObject = obj.try_into()?;
+                    return Ok(int_obj.negate().into());
                 }
                 _ => {
                     todo!()
@@ -80,7 +78,7 @@ mod tests {
     }
 
     #[test]
-    fn eval_prefix_op() {
+    fn eval_prefix_bang() {
         let inputs = [
             ("!true", false),
             ("!false", true),
@@ -92,6 +90,16 @@ mod tests {
         for input in inputs {
             let object = eval_input(input.0);
             check_bool_object(&object, input.1);
+        }
+    }
+
+    #[test]
+    fn eval_prefix_minus() {
+        let inputs = [("5", 5), ("-5", -5), ("10", 10), ("-10", -10)];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_int_object(&object, input.1);
         }
     }
 
