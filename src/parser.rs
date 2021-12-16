@@ -1,5 +1,5 @@
 use crate::{
-    ast::{self, CallExpression, Expr, FunctionExpression, InfixExpr},
+    ast::{self, CallExpr, Expr, FuncExpr, InfixExpr},
     lexer::Lexer,
     token::{IdentToken, Token},
 };
@@ -80,7 +80,7 @@ impl Parser {
                 Token::Let => ast::Statement::LetStatement(self.parse_let_statement()?),
                 Token::Return => ast::Statement::ReturnStatement(self.parse_return_statement()?),
                 Token::LBrace => ast::Statement::BlockStatement(self.parse_block_statement()?),
-                _ => ast::Statement::ExpressionStatement(self.parse_expression_statement()?),
+                _ => ast::Statement::ExprStatement(self.parse_expr_statement()?),
             };
             Ok(statement)
         } else {
@@ -100,24 +100,24 @@ impl Parser {
         }
         self.advancd_token();
 
-        let expression = self.parse_expression(Precedence::Lowest)?;
+        let expr = self.parse_expr(Precedence::Lowest)?;
 
-        let let_statement = ast::LetStatement::new(identifier, expression);
+        let let_statement = ast::LetStatement::new(identifier, expr);
         Ok(let_statement)
     }
 
     fn parse_return_statement(&mut self) -> Result<ast::ReturnStatement, ParseError> {
         self.advancd_token(); // return
 
-        let expression = self.parse_expression(Precedence::Lowest)?;
-        let return_stmt = ast::ReturnStatement::new(expression);
+        let expr = self.parse_expr(Precedence::Lowest)?;
+        let return_stmt = ast::ReturnStatement::new(expr);
         Ok(return_stmt)
     }
 
-    fn parse_expression_statement(&mut self) -> Result<ast::ExpressionStatement, ParseError> {
-        let expression = self.parse_expression(Precedence::Lowest)?;
-        let expression_stmt = ast::ExpressionStatement::new(expression);
-        Ok(expression_stmt)
+    fn parse_expr_statement(&mut self) -> Result<ast::ExprStatement, ParseError> {
+        let expr = self.parse_expr(Precedence::Lowest)?;
+        let expr_stmt = ast::ExprStatement::new(expr);
+        Ok(expr_stmt)
     }
 
     fn parse_identifier(&mut self) -> Result<IdentToken, ParseError> {
@@ -138,7 +138,7 @@ impl Parser {
         }
     }
 
-    fn parse_prefix_expression(&mut self) -> Result<Expr, ParseError> {
+    fn parse_prefix_expr(&mut self) -> Result<Expr, ParseError> {
         let tok = self
             .cur_token()
             .ok_or_else(|| ParseError::NoMoreToken("when parse prefix".to_string()))?;
@@ -148,16 +148,16 @@ impl Parser {
         let exp = match (tok, next_tok) {
             (tok, _) if tok.is_prefix_op() => {
                 self.advancd_token();
-                let exp = self.parse_expression(Precedence::Prefix)?;
-                Expr::new_prefix_expression(tok, exp)
+                let exp = self.parse_expr(Precedence::Prefix)?;
+                Expr::new_prefix_expr(tok, exp)
             }
-            (Token::LParen, _) => self.parse_group_expression()?,
-            (Token::If, _) => self.parse_if_expression()?,
-            (Token::Function, _) => self.parse_function_expression()?,
-            (Token::Ident(_), Some(Token::LParen)) => self.parse_call_expression()?,
+            (Token::LParen, _) => self.parse_group_expr()?,
+            (Token::If, _) => self.parse_if_expr()?,
+            (Token::Function, _) => self.parse_function_expr()?,
+            (Token::Ident(_), Some(Token::LParen)) => self.parse_call_expr()?,
             (tok, _) => {
-                let result = Expr::new_single_expression(tok.clone()).ok_or_else(|| {
-                    let err = format!("expression token expected, but {:?}", tok);
+                let result = Expr::new_single_expr(tok.clone()).ok_or_else(|| {
+                    let err = format!("expr token expected, but {:?}", tok);
                     ParseError::UnexpectedToken(err)
                 })?;
 
@@ -169,12 +169,12 @@ impl Parser {
         Ok(exp)
     }
 
-    fn parse_call_expression(&mut self) -> Result<Expr, ParseError> {
+    fn parse_call_expr(&mut self) -> Result<Expr, ParseError> {
         if let Some(Token::Ident(ident_token)) = self.cur_token() {
             self.advancd_token();
-            let args = self.parse_call_argument_expression()?;
+            let args = self.parse_call_argument_expr()?;
 
-            Ok(Expr::Call(CallExpression {
+            Ok(Expr::Call(CallExpr {
                 fn_name: ident_token,
                 args,
             }))
@@ -184,20 +184,20 @@ impl Parser {
         }
     }
 
-    fn parse_group_expression(&mut self) -> Result<Expr, ParseError> {
+    fn parse_group_expr(&mut self) -> Result<Expr, ParseError> {
         self.expect_token(Token::LParen)?;
 
-        let inner_expression = self.parse_expression(Precedence::Lowest)?;
+        let inner_expr = self.parse_expr(Precedence::Lowest)?;
 
         self.expect_token(Token::RParen)?;
 
-        Ok(inner_expression)
+        Ok(inner_expr)
     }
 
-    fn parse_if_expression(&mut self) -> Result<Expr, ParseError> {
+    fn parse_if_expr(&mut self) -> Result<Expr, ParseError> {
         self.expect_token(Token::If)?;
 
-        let condition_expression = self.parse_group_expression()?;
+        let condition_expr = self.parse_group_expr()?;
 
         let consequence_statement = self.parse_block_statement()?;
 
@@ -207,16 +207,16 @@ impl Parser {
             None
         };
 
-        let if_expression = ast::IfExpression {
-            condition: Box::new(condition_expression),
+        let if_expr = ast::IfExpr {
+            condition: Box::new(condition_expr),
             consequence_statement,
             alternative_statement,
         };
 
-        Ok(Expr::If(if_expression))
+        Ok(Expr::If(if_expr))
     }
 
-    fn parse_function_expression(&mut self) -> Result<Expr, ParseError> {
+    fn parse_function_expr(&mut self) -> Result<Expr, ParseError> {
         // fn
         self.expect_token(Token::Function)?;
 
@@ -243,13 +243,13 @@ impl Parser {
         // block statement
         let block_statement = self.parse_block_statement()?;
 
-        let fn_expression = FunctionExpression {
+        let fn_expr = FuncExpr {
             name: fn_name,
             args,
             block_statement,
         };
 
-        Ok(Expr::Function(fn_expression))
+        Ok(Expr::Function(fn_expr))
     }
 
     fn parse_block_statement(&mut self) -> Result<ast::BlockStatement, ParseError> {
@@ -279,7 +279,7 @@ impl Parser {
         Ok(cur_token)
     }
 
-    fn parse_call_argument_expression(&mut self) -> Result<Vec<Expr>, ParseError> {
+    fn parse_call_argument_expr(&mut self) -> Result<Vec<Expr>, ParseError> {
         let mut result = Vec::new();
         self.expect_token(Token::LParen)?;
 
@@ -292,8 +292,8 @@ impl Parser {
                 self.expect_token(Token::Comma)?;
             }
 
-            let expression = self.parse_expression(Precedence::Lowest)?;
-            result.push(expression);
+            let expr = self.parse_expr(Precedence::Lowest)?;
+            result.push(expr);
         }
 
         self.expect_token(Token::RParen)?;
@@ -301,11 +301,11 @@ impl Parser {
         Ok(result)
     }
 
-    fn parse_expression(&mut self, precedence: Precedence) -> Result<Expr, ParseError> {
-        let mut result = self.parse_prefix_expression()?;
+    fn parse_expr(&mut self, precedence: Precedence) -> Result<Expr, ParseError> {
+        let mut result = self.parse_prefix_expr()?;
 
         while let Some(cur_token) = self.cur_token() {
-            // exit expression parsing if semicolon encountered
+            // exit expr parsing if semicolon encountered
             if self.cur_token() == Some(Token::Semicolon) {
                 self.advancd_token();
                 return Ok(result);
@@ -319,9 +319,9 @@ impl Parser {
                 let cur_precedence = cur_token.precedence().unwrap(); // infix token should have precedencd
                 if cur_precedence > precedence {
                     self.advancd_token();
-                    let right_expression = self.parse_expression(cur_precedence)?;
+                    let right_expr = self.parse_expr(cur_precedence)?;
 
-                    result = Expr::Infix(InfixExpr::new(result, cur_token, right_expression));
+                    result = Expr::Infix(InfixExpr::new(result, cur_token, right_expr));
                     continue;
                 }
             }
@@ -334,9 +334,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::{
-        CallExpression, ExpressionStatement, IfExpression, InfixExpr, PrefixExpression, Statement,
-    };
+    use crate::ast::{CallExpr, ExprStatement, IfExpr, InfixExpr, PrefixExpr, Statement};
 
     use super::*;
 
@@ -365,33 +363,33 @@ mod tests {
     }
 
     #[test]
-    fn boolean_expression() {
+    fn boolean_expr() {
         let input = "true;";
         let stmts = input_to_statements(input);
-        let expression = get_expression_statement(&stmts[0]).unwrap();
-        check_bool_expression(&expression.expression, true);
+        let expr = get_expr_statement(&stmts[0]).unwrap();
+        check_bool_expr(&expr.expr, true);
     }
 
     #[test]
-    fn expression_statement() {
+    fn expr_statement() {
         let input = "a;";
         let lexer = Lexer::new(input);
         let parser = Parser::new(lexer);
         let program = parser.parse_program().unwrap();
         assert_eq!(program.statement_count(), 1);
-        check_expression_statement(program.get_statement(0).unwrap());
+        check_expr_statement(program.get_statement(0).unwrap());
         assert_eq!(program.get_statement(0).unwrap().to_string(), "a;");
     }
 
     #[test]
-    fn number_expression_statement() {
+    fn number_expr_statement() {
         let input = "6;";
         let lexer = Lexer::new(input);
         let parser = Parser::new(lexer);
         let program = parser.parse_program().unwrap();
 
         assert_eq!(program.statement_count(), 1);
-        check_expression_statement(program.get_statement(0).unwrap());
+        check_expr_statement(program.get_statement(0).unwrap());
         assert_eq!(program.get_statement(0).unwrap().to_string(), "6;");
     }
 
@@ -412,54 +410,52 @@ mod tests {
     }
 
     #[test]
-    fn infix_expression() {
+    fn infix_expr() {
         let input = "1 + 2;";
         let lexer = Lexer::new(input);
         let parser = Parser::new(lexer);
         let program = parser.parse_program().unwrap();
-        let expression_statement =
-            get_expression_statement(program.get_statement(0).unwrap()).unwrap();
+        let expr_statement = get_expr_statement(program.get_statement(0).unwrap()).unwrap();
 
-        let infix_expression = get_infix_expression(&expression_statement.expression).unwrap();
-        check_number_expression(&infix_expression.left, 1);
-        assert_eq!(infix_expression.op, Token::Plus);
-        check_number_expression(&infix_expression.right, 2);
+        let infix_expr = get_infix_expr(&expr_statement.expr).unwrap();
+        check_number_expr(&infix_expr.left, 1);
+        assert_eq!(infix_expr.op, Token::Plus);
+        check_number_expr(&infix_expr.right, 2);
     }
 
     #[test]
-    fn multiple_infix_expression() {
+    fn multiple_infix_expr() {
         let input = "1 + 2 - 3;";
         let lexer = Lexer::new(input);
         let parser = Parser::new(lexer);
         let program = parser.parse_program().unwrap();
-        let expression_statement =
-            get_expression_statement(program.get_statement(0).unwrap()).unwrap();
+        let expr_statement = get_expr_statement(program.get_statement(0).unwrap()).unwrap();
 
-        let infix_expression = get_infix_expression(&expression_statement.expression).unwrap();
-        let left_infix_expression = get_infix_expression(&infix_expression.left).unwrap();
-        check_number_expression(&left_infix_expression.left, 1);
-        assert_eq!(left_infix_expression.op, Token::Plus);
-        check_number_expression(&left_infix_expression.right, 2);
+        let infix_expr = get_infix_expr(&expr_statement.expr).unwrap();
+        let left_infix_expr = get_infix_expr(&infix_expr.left).unwrap();
+        check_number_expr(&left_infix_expr.left, 1);
+        assert_eq!(left_infix_expr.op, Token::Plus);
+        check_number_expr(&left_infix_expr.right, 2);
 
-        assert_eq!(infix_expression.op, Token::Minus);
-        check_number_expression(&infix_expression.right, 3);
+        assert_eq!(infix_expr.op, Token::Minus);
+        check_number_expr(&infix_expr.right, 3);
     }
 
     #[test]
-    fn prefix_operator_expression() {
+    fn prefix_operator_expr() {
         let input = "-1;!a;";
         let stmts = input_to_statements(input);
         assert_eq!(stmts.len(), 2);
 
-        let expression_statement = get_expression_statement(&stmts[0]).unwrap();
-        let prefix_expression = get_prefix_expression(&expression_statement.expression).unwrap();
-        assert_eq!(prefix_expression.op, Token::Minus);
-        check_number_expression(&prefix_expression.exp, 1);
+        let expr_statement = get_expr_statement(&stmts[0]).unwrap();
+        let prefix_expr = get_prefix_expr(&expr_statement.expr).unwrap();
+        assert_eq!(prefix_expr.op, Token::Minus);
+        check_number_expr(&prefix_expr.exp, 1);
 
-        let expression_statement = get_expression_statement(&stmts[1]).unwrap();
-        let prefix_expression = get_prefix_expression(&expression_statement.expression).unwrap();
-        assert_eq!(prefix_expression.op, Token::Bang);
-        check_identifier_expression(&prefix_expression.exp, "a");
+        let expr_statement = get_expr_statement(&stmts[1]).unwrap();
+        let prefix_expr = get_prefix_expr(&expr_statement.expr).unwrap();
+        assert_eq!(prefix_expr.op, Token::Bang);
+        check_identifier_expr(&prefix_expr.exp, "a");
     }
 
     #[test]
@@ -478,75 +474,75 @@ mod tests {
     }
 
     #[test]
-    fn test_group_expression() {
+    fn test_group_expr() {
         // let input = "a * (b + c) == true;";
         let input = "a * (b + c);";
         let stmts = input_to_statements(input);
-        let stmt = get_expression_statement(stmts.get(0).unwrap()).unwrap();
+        let stmt = get_expr_statement(stmts.get(0).unwrap()).unwrap();
         assert_eq!(stmt.to_string(), "(a * (b + c));");
-        let left = get_infix_expression(&stmt.expression).unwrap();
+        let left = get_infix_expr(&stmt.expr).unwrap();
 
-        check_identifier_expression(&left.left, "a");
-        let right = get_infix_expression(&left.right).unwrap();
-        check_identifier_expression(&right.left, "b");
-        check_identifier_expression(&right.right, "c");
+        check_identifier_expr(&left.left, "a");
+        let right = get_infix_expr(&left.right).unwrap();
+        check_identifier_expr(&right.left, "b");
+        check_identifier_expr(&right.right, "c");
     }
 
     #[test]
     fn test_equal_not_equal() {
         let input = "a == b;";
         let stmts = input_to_statements(input);
-        let expression_stmt = get_expression_statement(&stmts[0]).unwrap();
+        let expr_stmt = get_expr_statement(&stmts[0]).unwrap();
 
-        let infix = get_infix_expression(&expression_stmt.expression).unwrap();
-        check_identifier_expression(&infix.left, "a");
+        let infix = get_infix_expr(&expr_stmt.expr).unwrap();
+        check_identifier_expr(&infix.left, "a");
         assert_eq!(infix.op, Token::Eq);
-        check_identifier_expression(&infix.right, "b");
+        check_identifier_expr(&infix.right, "b");
     }
 
     #[test]
-    fn test_if_expression() {
+    fn test_if_expr() {
         let input = "if (a == 0) { a };";
         let stmts = input_to_statements(input);
-        let stmt = get_expression_statement(&stmts[0]).unwrap();
+        let stmt = get_expr_statement(&stmts[0]).unwrap();
 
-        let if_expression = get_if_expression(&stmt.expression).unwrap();
-        let condition = get_infix_expression(&if_expression.condition).unwrap();
-        check_identifier_expression(&condition.left, "a");
+        let if_expr = get_if_expr(&stmt.expr).unwrap();
+        let condition = get_infix_expr(&if_expr.condition).unwrap();
+        check_identifier_expr(&condition.left, "a");
         assert_eq!(condition.op, Token::Eq);
-        check_number_expression(&condition.right, 0);
+        check_number_expr(&condition.right, 0);
 
-        let consequence = &if_expression.consequence_statement;
+        let consequence = &if_expr.consequence_statement;
         assert_eq!(consequence.statements.len(), 1);
-        let expr = get_expression_statement(&consequence.statements[0]).unwrap();
-        check_identifier_expression(&expr.expression, "a");
+        let expr = get_expr_statement(&consequence.statements[0]).unwrap();
+        check_identifier_expr(&expr.expr, "a");
     }
 
     #[test]
-    fn test_if_else_expression() {
+    fn test_if_else_expr() {
         let input = "if (a == 0) { a } else { b };";
         let stmts = input_to_statements(input);
-        let stmt = get_expression_statement(&stmts[0]).unwrap();
+        let stmt = get_expr_statement(&stmts[0]).unwrap();
 
-        let if_expression = get_if_expression(&stmt.expression).unwrap();
-        let condition = get_infix_expression(&if_expression.condition).unwrap();
-        check_identifier_expression(&condition.left, "a");
+        let if_expr = get_if_expr(&stmt.expr).unwrap();
+        let condition = get_infix_expr(&if_expr.condition).unwrap();
+        check_identifier_expr(&condition.left, "a");
         assert_eq!(condition.op, Token::Eq);
-        check_number_expression(&condition.right, 0);
+        check_number_expr(&condition.right, 0);
 
-        let consequence = &if_expression.consequence_statement;
+        let consequence = &if_expr.consequence_statement;
         assert_eq!(consequence.statements.len(), 1);
-        let expr = get_expression_statement(&consequence.statements[0]).unwrap();
-        check_identifier_expression(&expr.expression, "a");
+        let expr = get_expr_statement(&consequence.statements[0]).unwrap();
+        check_identifier_expr(&expr.expr, "a");
 
-        let alternative = if_expression.alternative_statement.as_ref().unwrap();
+        let alternative = if_expr.alternative_statement.as_ref().unwrap();
         assert_eq!(alternative.statements.len(), 1);
-        let expr = get_expression_statement(&alternative.statements[0]).unwrap();
-        check_identifier_expression(&expr.expression, "b");
+        let expr = get_expr_statement(&alternative.statements[0]).unwrap();
+        check_identifier_expr(&expr.expr, "b");
     }
 
     #[test]
-    fn test_fn_expression() {
+    fn test_fn_expr() {
         let input = r#"
             fn my_func_1() { return a + b; };
             fn my_func_2(a) { return a + b; };
@@ -554,14 +550,14 @@ mod tests {
         "#;
 
         let stmts = input_to_statements(input);
-        let expression_stmt = get_expression_statement(&stmts[0]).unwrap();
-        check_fn_expression(&expression_stmt.expression, "my_func_1", &[]);
+        let expr_stmt = get_expr_statement(&stmts[0]).unwrap();
+        check_fn_expr(&expr_stmt.expr, "my_func_1", &[]);
 
-        let expression_stmt = get_expression_statement(&stmts[1]).unwrap();
-        check_fn_expression(&expression_stmt.expression, "my_func_2", &["a"]);
+        let expr_stmt = get_expr_statement(&stmts[1]).unwrap();
+        check_fn_expr(&expr_stmt.expr, "my_func_2", &["a"]);
 
-        let expression_stmt = get_expression_statement(&stmts[2]).unwrap();
-        check_fn_expression(&expression_stmt.expression, "my_func_3", &["a", "b", "c"]);
+        let expr_stmt = get_expr_statement(&stmts[2]).unwrap();
+        check_fn_expr(&expr_stmt.expr, "my_func_3", &["a", "b", "c"]);
     }
 
     #[test]
@@ -574,35 +570,35 @@ mod tests {
 
         let stmts = input_to_statements(input);
 
-        let stmt = get_expression_statement(&stmts[0]).unwrap();
-        let call = get_call_expression(&stmt.expression).unwrap();
+        let stmt = get_expr_statement(&stmts[0]).unwrap();
+        let call = get_call_expr(&stmt.expr).unwrap();
         assert_eq!(call.fn_name.0, "my_func");
         assert_eq!(call.args.len(), 0);
 
-        let stmt = get_expression_statement(&stmts[1]).unwrap();
-        let call = get_call_expression(&stmt.expression).unwrap();
+        let stmt = get_expr_statement(&stmts[1]).unwrap();
+        let call = get_call_expr(&stmt.expr).unwrap();
         assert_eq!(call.fn_name.0, "my_func");
         assert_eq!(call.args.len(), 2);
 
-        let stmt = get_expression_statement(&stmts[2]).unwrap();
-        let call = get_call_expression(&stmt.expression).unwrap();
+        let stmt = get_expr_statement(&stmts[2]).unwrap();
+        let call = get_call_expr(&stmt.expr).unwrap();
         assert_eq!(call.fn_name.0, "my_func2");
         assert_eq!(call.args.len(), 2);
     }
 
-    fn get_call_expression(expression: &Expr) -> Option<&CallExpression> {
-        match expression {
-            Expr::Call(call_expression) => Some(call_expression),
+    fn get_call_expr(expr: &Expr) -> Option<&CallExpr> {
+        match expr {
+            Expr::Call(call_expr) => Some(call_expr),
             _ => None,
         }
     }
 
-    fn check_fn_expression(expression: &Expr, name: &str, args: &[&str]) {
-        let fn_expression = get_function_expression(expression).unwrap();
-        assert_eq!(fn_expression.name.0, name);
-        assert_eq!(fn_expression.args.len(), args.len());
+    fn check_fn_expr(expr: &Expr, name: &str, args: &[&str]) {
+        let fn_expr = get_function_expr(expr).unwrap();
+        assert_eq!(fn_expr.name.0, name);
+        assert_eq!(fn_expr.args.len(), args.len());
         args.iter()
-            .zip(&fn_expression.args)
+            .zip(&fn_expr.args)
             .for_each(|(a, b)| assert_eq!(*a, b.0));
     }
 
@@ -615,30 +611,30 @@ mod tests {
         }
     }
 
-    fn check_expression_statement(stmt: &Statement) {
+    fn check_expr_statement(stmt: &Statement) {
         match stmt {
-            ast::Statement::ExpressionStatement(_expr) => {}
-            _ => panic!("not expression statement"),
+            ast::Statement::ExprStatement(_expr) => {}
+            _ => panic!("not expr statement"),
         }
     }
 
-    fn get_if_expression(expression: &Expr) -> Option<&IfExpression> {
-        match expression {
-            Expr::If(if_expression) => Some(if_expression),
+    fn get_if_expr(expr: &Expr) -> Option<&IfExpr> {
+        match expr {
+            Expr::If(if_expr) => Some(if_expr),
             _ => None,
         }
     }
 
-    fn get_function_expression(expression: &Expr) -> Option<&FunctionExpression> {
-        match expression {
-            Expr::Function(fn_expression) => Some(fn_expression),
+    fn get_function_expr(expr: &Expr) -> Option<&FuncExpr> {
+        match expr {
+            Expr::Function(fn_expr) => Some(fn_expr),
             _ => None,
         }
     }
 
-    fn get_expression_statement(statement: &Statement) -> Option<&ExpressionStatement> {
+    fn get_expr_statement(statement: &Statement) -> Option<&ExprStatement> {
         match statement {
-            Statement::ExpressionStatement(expression) => Some(expression),
+            Statement::ExprStatement(expr) => Some(expr),
             _ => None,
         }
     }
@@ -650,44 +646,44 @@ mod tests {
         }
     }
 
-    fn get_prefix_expression(expression: &Expr) -> Option<&PrefixExpression> {
-        match expression {
+    fn get_prefix_expr(expr: &Expr) -> Option<&PrefixExpr> {
+        match expr {
             Expr::Prefix(prefix) => Some(prefix),
             _ => None,
         }
     }
 
-    fn get_infix_expression(expression: &Expr) -> Option<&InfixExpr> {
-        match expression {
+    fn get_infix_expr(expr: &Expr) -> Option<&InfixExpr> {
+        match expr {
             Expr::Infix(infix) => Some(infix),
             _ => None,
         }
     }
 
-    fn check_number_expression(expression: &Expr, value: i32) {
-        match expression {
+    fn check_number_expr(expr: &Expr, value: i32) {
+        match expr {
             Expr::Number(num) => {
                 assert_eq!(num.value, value);
             }
-            _ => panic!("expected number expression, but {:?}", expression),
+            _ => panic!("expected number expr, but {:?}", expr),
         }
     }
 
-    fn check_identifier_expression(expression: &Expr, name: &str) {
-        match expression {
+    fn check_identifier_expr(expr: &Expr, name: &str) {
+        match expr {
             Expr::Identifier(ident) => {
                 assert_eq!(&ident.ident.0, name);
             }
-            _ => panic!("expected identifier expression, but {:?}", expression),
+            _ => panic!("expected identifier expr, but {:?}", expr),
         }
     }
 
-    fn check_bool_expression(expression: &Expr, value: bool) {
-        match expression {
+    fn check_bool_expr(expr: &Expr, value: bool) {
+        match expr {
             Expr::Bool(boolean) => {
                 assert_eq!(boolean.value, value);
             }
-            _ => panic!("expected boolean expression, but {:?}", expression),
+            _ => panic!("expected boolean expr, but {:?}", expr),
         }
     }
 

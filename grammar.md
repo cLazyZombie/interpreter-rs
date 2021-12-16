@@ -4,6 +4,6 @@ LetStmt = "let" IdentToken "=" Expr ";"
 ReturnStmt = "return" Expr ";"
 BlockStmt = "{" Stmt "}"
 
-[expression]
+[expr]
 Expr =  IdentExpr | NumExpr | BoolExpr | PrefixExpr | InfixExpr | IfExpr | FnExpr | FnCallExpr
 IdentExpr = IdentToken
