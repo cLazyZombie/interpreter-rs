@@ -1,6 +1,6 @@
 use std::io::{self, BufRead, Write};
 
-use interpreter_rs::{lexer::Lexer, parser::Parser};
+use interpreter_rs::{eval::eval, lexer::Lexer, parser::Parser};
 
 fn main() {
     print!(">> ");
@@ -14,7 +14,15 @@ fn main() {
         match stmts {
             Ok(stmts) => {
                 for stmt in stmts {
-                    println!("{}", stmt);
+                    let object = eval(stmt);
+                    match object {
+                        Ok(object) => {
+                            println!("{}", object);
+                        }
+                        Err(err) => {
+                            println!("Error. {:?}", err);
+                        }
+                    }
                 }
             }
             Err(err) => {
