@@ -59,7 +59,7 @@ impl Parser {
         Ok(ast::Program::new(statements))
     }
 
-    fn parse_statements(&mut self) -> Result<Vec<ast::Statement>, ParseError> {
+    pub fn parse_statements(&mut self) -> Result<Vec<ast::Statement>, ParseError> {
         let mut statements = Vec::new();
 
         while let Some(token) = self.cur_token() {
