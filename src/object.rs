@@ -37,6 +37,22 @@ impl Object {
             _ => None,
         }
     }
+
+    pub fn eq(&self, rhs: Self) -> Option<Object> {
+        match self {
+            Object::Int(int_object) => int_object.eq(rhs).map(|i| i.into()),
+            Object::Bool(bool_object) => bool_object.eq(rhs).map(|b| b.into()),
+            _ => None,
+        }
+    }
+
+    pub fn not_eq(&self, rhs: Self) -> Option<Object> {
+        match self {
+            Object::Int(int_object) => int_object.not_eq(rhs).map(|i| i.into()),
+            Object::Bool(bool_object) => bool_object.not_eq(rhs).map(|b| b.into()),
+            _ => None,
+        }
+    }
 }
 
 impl Display for Object {
@@ -128,6 +144,19 @@ impl IntObject {
             None
         }
     }
+
+    pub fn eq(&self, rhs: Object) -> Option<BoolObject> {
+        let rhs: Result<IntObject, EvalError> = rhs.try_into();
+        if let Ok(rhs) = rhs {
+            Some(BoolObject::new(self.val == rhs.val))
+        } else {
+            None
+        }
+    }
+
+    pub fn not_eq(&self, rhs: Object) -> Option<BoolObject> {
+        self.eq(rhs).map(|b| BoolObject::new(!b.val))
+    }
 }
 
 impl Display for IntObject {
@@ -154,6 +183,19 @@ impl BoolObject {
 
     pub fn bang(&self) -> Self {
         Self { val: !self.val }
+    }
+
+    pub fn eq(&self, rhs: Object) -> Option<BoolObject> {
+        let rhs: Result<BoolObject, EvalError> = rhs.try_into();
+        if let Ok(rhs) = rhs {
+            Some(BoolObject::new(self.val == rhs.val))
+        } else {
+            None
+        }
+    }
+
+    pub fn not_eq(&self, rhs: Object) -> Option<BoolObject> {
+        self.eq(rhs).map(|b| BoolObject::new(!b.val))
     }
 }
 

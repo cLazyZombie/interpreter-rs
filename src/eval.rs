@@ -60,6 +60,14 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
                         let value = left.slash(right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
+                    Token::Eq => {
+                        let value = left.eq(right).ok_or(EvalError::Todo)?;
+                        Ok(value)
+                    }
+                    Token::NotEq => {
+                        let value = left.not_eq(right).ok_or(EvalError::Todo)?;
+                        Ok(value)
+                    }
                     _ => Err(EvalError::InvalidInfixOperator {
                         operator_token: infix_expr.op.to_string(),
                     }),
@@ -143,6 +151,25 @@ mod tests {
         for input in inputs {
             let object = eval_input(input.0);
             check_int_object(&object, input.1);
+        }
+    }
+
+    #[test]
+    fn eval_equal_not_equal() {
+        let inputs = [
+            ("1 == 2", false),
+            ("1 == 1", true),
+            ("1 != 2", true),
+            ("1 != 1", false),
+            ("true == true", true),
+            ("false == false", true),
+            ("true == false", false),
+            ("true != false", true),
+        ];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_bool_object(&object, input.1);
         }
     }
 
