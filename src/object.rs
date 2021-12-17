@@ -143,55 +143,6 @@ impl IntObject {
     pub fn negate(&self) -> Self {
         Self { val: -self.val }
     }
-
-    pub fn plus(&self, rhs: Object) -> Option<IntObject> {
-        let rhs: Result<IntObject, EvalError> = rhs.try_into();
-        if let Ok(rhs) = rhs {
-            Some(IntObject::new(self.val + rhs.val))
-        } else {
-            None
-        }
-    }
-
-    pub fn minus(&self, rhs: Object) -> Option<IntObject> {
-        let rhs: Result<IntObject, EvalError> = rhs.try_into();
-        if let Ok(rhs) = rhs {
-            Some(IntObject::new(self.val - rhs.val))
-        } else {
-            None
-        }
-    }
-
-    pub fn asterrisk(&self, rhs: Object) -> Option<IntObject> {
-        let rhs: Result<IntObject, EvalError> = rhs.try_into();
-        if let Ok(rhs) = rhs {
-            Some(IntObject::new(self.val * rhs.val))
-        } else {
-            None
-        }
-    }
-
-    pub fn slash(&self, rhs: Object) -> Option<IntObject> {
-        let rhs: Result<IntObject, EvalError> = rhs.try_into();
-        if let Ok(rhs) = rhs {
-            Some(IntObject::new(self.val / rhs.val))
-        } else {
-            None
-        }
-    }
-
-    pub fn eq(&self, rhs: Object) -> Option<BoolObject> {
-        let rhs: Result<IntObject, EvalError> = rhs.try_into();
-        if let Ok(rhs) = rhs {
-            Some(BoolObject::new(self.val == rhs.val))
-        } else {
-            None
-        }
-    }
-
-    pub fn not_eq(&self, rhs: Object) -> Option<BoolObject> {
-        self.eq(rhs).map(|b| BoolObject::new(!b.val))
-    }
 }
 
 impl Add for &IntObject {
@@ -250,19 +201,6 @@ impl BoolObject {
 
     pub fn bang(&self) -> Self {
         Self { val: !self.val }
-    }
-
-    pub fn eq(&self, rhs: Object) -> Option<BoolObject> {
-        let rhs: Result<BoolObject, EvalError> = rhs.try_into();
-        if let Ok(rhs) = rhs {
-            Some(BoolObject::new(self.val == rhs.val))
-        } else {
-            None
-        }
-    }
-
-    pub fn not_eq(&self, rhs: Object) -> Option<BoolObject> {
-        self.eq(rhs).map(|b| BoolObject::new(!b.val))
     }
 }
 
