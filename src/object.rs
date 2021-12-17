@@ -27,65 +27,64 @@ impl Object {
         }
     }
 
-    pub fn asterrisk(&self, rhs: Self) -> Option<Object> {
-        match self {
-            Object::Int(int_object) => int_object.asterrisk(rhs).map(|i| i.into()),
-            _ => None,
-        }
-    }
-
-    pub fn slash(&self, rhs: Self) -> Option<Object> {
-        match self {
-            Object::Int(int_object) => int_object.slash(rhs).map(|i| i.into()),
-            _ => None,
-        }
-    }
-
-    pub fn eq(&self, rhs: Self) -> Option<Object> {
-        match self {
-            Object::Int(int_object) => int_object.eq(rhs).map(|i| i.into()),
-            Object::Bool(bool_object) => bool_object.eq(rhs).map(|b| b.into()),
-            _ => None,
-        }
-    }
-
-    pub fn not_eq(&self, rhs: Self) -> Option<Object> {
-        // todo. match (self, rhs) 형태는 어떤가?
-        match self {
-            Object::Int(int_object) => int_object.not_eq(rhs).map(|i| i.into()),
-            Object::Bool(bool_object) => bool_object.not_eq(rhs).map(|b| b.into()),
-            _ => None,
-        }
-    }
-
-    pub fn lt(&self, rhs: Self) -> Option<Object> {
+    pub fn asterrisk(&self, rhs: &Self) -> Option<Object> {
         match (self, rhs) {
-            (Object::Int(lhs), Object::Int(rhs)) => Some(Object::Bool(BoolObject::new(lhs < &rhs))),
+            (Object::Int(lhs), Object::Int(rhs)) => Some((lhs * rhs).into()),
             _ => None,
         }
     }
 
-    pub fn lt_eq(&self, rhs: Self) -> Option<Object> {
+    pub fn slash(&self, rhs: &Self) -> Option<Object> {
         match (self, rhs) {
-            (Object::Int(lhs), Object::Int(rhs)) => {
-                Some(Object::Bool(BoolObject::new(lhs <= &rhs)))
+            (Object::Int(lhs), Object::Int(rhs)) => Some((lhs / rhs).into()),
+            _ => None,
+        }
+    }
+
+    pub fn eq(&self, rhs: &Self) -> Option<Object> {
+        match (self, rhs) {
+            (Object::Int(lhs), Object::Int(rhs)) => Some(Object::Bool(BoolObject::new(lhs == rhs))),
+            (Object::Bool(lhs), Object::Bool(rhs)) => {
+                Some(Object::Bool(BoolObject::new(lhs == rhs)))
             }
             _ => None,
         }
     }
 
-    pub fn gt(&self, rhs: Self) -> Option<Object> {
+    pub fn not_eq(&self, rhs: &Self) -> Option<Object> {
+        self.eq(rhs).map(|b| {
+            if let Object::Bool(b) = b {
+                b.bang().into()
+            } else {
+                panic!("equal should return bool object");
+            }
+        })
+    }
+
+    pub fn lt(&self, rhs: &Self) -> Option<Object> {
         match (self, rhs) {
-            (Object::Int(lhs), Object::Int(rhs)) => Some(Object::Bool(BoolObject::new(lhs > &rhs))),
+            (Object::Int(lhs), Object::Int(rhs)) => Some(Object::Bool(BoolObject::new(lhs < rhs))),
             _ => None,
         }
     }
 
-    pub fn gt_eq(&self, rhs: Self) -> Option<Object> {
+    pub fn lt_eq(&self, rhs: &Self) -> Option<Object> {
         match (self, rhs) {
-            (Object::Int(lhs), Object::Int(rhs)) => {
-                Some(Object::Bool(BoolObject::new(lhs >= &rhs)))
-            }
+            (Object::Int(lhs), Object::Int(rhs)) => Some(Object::Bool(BoolObject::new(lhs <= rhs))),
+            _ => None,
+        }
+    }
+
+    pub fn gt(&self, rhs: &Self) -> Option<Object> {
+        match (self, rhs) {
+            (Object::Int(lhs), Object::Int(rhs)) => Some(Object::Bool(BoolObject::new(lhs > rhs))),
+            _ => None,
+        }
+    }
+
+    pub fn gt_eq(&self, rhs: &Self) -> Option<Object> {
+        match (self, rhs) {
+            (Object::Int(lhs), Object::Int(rhs)) => Some(Object::Bool(BoolObject::new(lhs >= rhs))),
             _ => None,
         }
     }
@@ -239,7 +238,7 @@ impl From<IntObject> for Object {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BoolObject {
     pub val: bool,
 }

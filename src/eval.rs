@@ -53,35 +53,35 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
                         Ok(value)
                     }
                     Token::Asterrisk => {
-                        let value = left.asterrisk(right).ok_or(EvalError::Todo)?;
+                        let value = left.asterrisk(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
                     Token::Slash => {
-                        let value = left.slash(right).ok_or(EvalError::Todo)?;
+                        let value = left.slash(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
                     Token::Eq => {
-                        let value = left.eq(right).ok_or(EvalError::Todo)?;
+                        let value = left.eq(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
                     Token::NotEq => {
-                        let value = left.not_eq(right).ok_or(EvalError::Todo)?;
+                        let value = left.not_eq(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
                     Token::LT => {
-                        let value = left.lt(right).ok_or(EvalError::Todo)?;
+                        let value = left.lt(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
                     Token::LTEq => {
-                        let value = left.lt_eq(right).ok_or(EvalError::Todo)?;
+                        let value = left.lt_eq(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
                     Token::GT => {
-                        let value = left.gt(right).ok_or(EvalError::Todo)?;
+                        let value = left.gt(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
                     Token::GTEq => {
-                        let value = left.gt_eq(right).ok_or(EvalError::Todo)?;
+                        let value = left.gt_eq(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
                     _ => Err(EvalError::InvalidInfixOperator {
