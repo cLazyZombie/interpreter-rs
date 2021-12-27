@@ -18,7 +18,18 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
     match node {
         Node::Stmt(stmt) => match stmt {
             Statement::ExprStatement(expr_stmt) => eval(&expr_stmt.expr),
+            Statement::BlockStatement(block_stmt) => {
+                let mut result = Object::Null;
+
+                // statement
+                for stmt in &block_stmt.statements {
+                    result = eval(stmt)?;
+                }
+
+                Ok(result)
+            }
             _ => {
+                eprintln!("stmt: {:?}", stmt);
                 todo!()
             }
         },
@@ -40,6 +51,19 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
                     todo!()
                 }
             },
+            Expr::If(if_expr) => {
+                let cond = eval(&*if_expr.condition)?;
+                let bool_cond: BoolObject = cond.try_into()?;
+                if bool_cond.val {
+                    eval(&*if_expr.consequence_statement)
+                } else {
+                    if let Some(alternative) = &if_expr.alternative_statement {
+                        eval(&**alternative)
+                    } else {
+                        Ok(Object::Null)
+                    }
+                }
+            }
             Expr::Infix(infix_expr) => {
                 let left = eval(&*infix_expr.left)?;
                 let right = eval(&*infix_expr.right)?;
@@ -203,6 +227,19 @@ mod tests {
         for input in inputs {
             let object = eval_input(input.0);
             check_bool_object(&object, input.1);
+        }
+    }
+
+    #[test]
+    fn evel_simple_if() {
+        let inputs = [
+            ("if (1 < 2) { 1 } else { 2 };", 1),
+            ("if (1 > 2) { 1 } else { 2 };", 2),
+        ];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_int_object(&object, input.1);
         }
     }
 

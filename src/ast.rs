@@ -147,6 +147,12 @@ impl Display for BlockStatement {
     }
 }
 
+impl From<BlockStatement> for Statement {
+    fn from(block_stmt: BlockStatement) -> Self {
+        Statement::BlockStatement(block_stmt)
+    }
+}
+
 #[derive(Debug)]
 pub enum Expr {
     Identifier(IdentExpr),
@@ -255,8 +261,10 @@ impl InfixExpr {
 #[derive(Debug)]
 pub struct IfExpr {
     pub condition: Box<Expr>,
-    pub consequence_statement: BlockStatement,
-    pub alternative_statement: Option<BlockStatement>,
+    pub consequence_statement: Box<Statement>, // should be BlockStatement
+    pub alternative_statement: Option<Box<Statement>>, // should be BlockStatement
+                                               // pub consequence_statement: BlockStatement,
+                                               // pub alternative_statement: Option<BlockStatement>,
 }
 
 impl Display for IfExpr {

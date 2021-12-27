@@ -1,5 +1,5 @@
 use crate::{
-    ast::{self, CallExpr, Expr, FuncExpr, InfixExpr},
+    ast::{self, CallExpr, Expr, FuncExpr, InfixExpr, Statement},
     lexer::Lexer,
     token::{IdentToken, Token},
 };
@@ -199,10 +199,13 @@ impl Parser {
 
         let condition_expr = self.parse_group_expr()?;
 
-        let consequence_statement = self.parse_block_statement()?;
+        let consequence_statement =
+            Box::new(Statement::BlockStatement(self.parse_block_statement()?));
 
         let alternative_statement = if let Ok(_else_token) = self.expect_token(Token::Else) {
-            Some(self.parse_block_statement()?)
+            Some(Box::new(Statement::BlockStatement(
+                self.parse_block_statement()?,
+            )))
         } else {
             None
         };
@@ -334,7 +337,9 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::{CallExpr, ExprStatement, IfExpr, InfixExpr, PrefixExpr, Statement};
+    use crate::ast::{
+        BlockStatement, CallExpr, ExprStatement, IfExpr, InfixExpr, PrefixExpr, Statement,
+    };
 
     use super::*;
 
@@ -513,6 +518,7 @@ mod tests {
         check_number_expr(&condition.right, 0);
 
         let consequence = &if_expr.consequence_statement;
+        let consequence = get_block_statement(&consequence).unwrap();
         assert_eq!(consequence.statements.len(), 1);
         let expr = get_expr_statement(&consequence.statements[0]).unwrap();
         check_identifier_expr(&expr.expr, "a");
@@ -531,11 +537,13 @@ mod tests {
         check_number_expr(&condition.right, 0);
 
         let consequence = &if_expr.consequence_statement;
+        let consequence = get_block_statement(&consequence).unwrap();
         assert_eq!(consequence.statements.len(), 1);
         let expr = get_expr_statement(&consequence.statements[0]).unwrap();
         check_identifier_expr(&expr.expr, "a");
 
         let alternative = if_expr.alternative_statement.as_ref().unwrap();
+        let alternative = get_block_statement(&alternative).unwrap();
         assert_eq!(alternative.statements.len(), 1);
         let expr = get_expr_statement(&alternative.statements[0]).unwrap();
         check_identifier_expr(&expr.expr, "b");
@@ -635,6 +643,13 @@ mod tests {
     fn get_expr_statement(statement: &Statement) -> Option<&ExprStatement> {
         match statement {
             Statement::ExprStatement(expr) => Some(expr),
+            _ => None,
+        }
+    }
+
+    fn get_block_statement(statement: &Statement) -> Option<&BlockStatement> {
+        match statement {
+            Statement::BlockStatement(block_stmt) => Some(block_stmt),
             _ => None,
         }
     }
