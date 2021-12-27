@@ -10,6 +10,7 @@ pub enum Object {
     Null,
     Int(IntObject),
     Bool(BoolObject),
+    Return(ReturnObject),
 }
 
 impl Object {
@@ -95,6 +96,7 @@ impl Display for Object {
         match self {
             Object::Int(int_object) => int_object.fmt(f),
             Object::Bool(bool_object) => bool_object.fmt(f),
+            Object::Return(return_object) => return_object.fmt(f),
             Object::Null => {
                 write!(f, "null")
             }
@@ -113,6 +115,11 @@ impl TryInto<BoolObject> for Object {
                 Ok(BoolObject::new(b))
             }
             Object::Bool(b) => Ok(b),
+            Object::Return(ret) => {
+                let val = ret.val;
+                let obj = *val;
+                obj.try_into()
+            }
         }
     }
 }
@@ -213,5 +220,28 @@ impl From<BoolObject> for Object {
 impl Display for BoolObject {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.val)
+    }
+}
+
+#[derive(Debug)]
+pub struct ReturnObject {
+    pub val: Box<Object>,
+}
+
+impl ReturnObject {
+    pub fn new(val: Object) -> Self {
+        Self { val: Box::new(val) }
+    }
+}
+
+impl Display for ReturnObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &*self.val)
+    }
+}
+
+impl From<ReturnObject> for Object {
+    fn from(ret: ReturnObject) -> Self {
+        Object::Return(ret)
     }
 }

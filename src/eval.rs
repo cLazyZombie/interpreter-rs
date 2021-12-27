@@ -1,6 +1,6 @@
 use crate::{
     ast::{Expr, Node, Statement},
-    object::{BoolObject, IntObject, Object},
+    object::{BoolObject, IntObject, Object, ReturnObject},
     token::Token,
 };
 
@@ -24,9 +24,18 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
                 // statement
                 for stmt in &block_stmt.statements {
                     result = eval(stmt)?;
+
+                    if let Object::Return(_) = &result {
+                        return Ok(result);
+                    }
                 }
 
                 Ok(result)
+            }
+            Statement::ReturnStatement(ret_stmt) => {
+                let inner = eval(&ret_stmt.expr)?;
+                let ret = ReturnObject::new(inner);
+                Ok(ret.into())
             }
             _ => {
                 eprintln!("stmt: {:?}", stmt);
@@ -231,10 +240,24 @@ mod tests {
     }
 
     #[test]
-    fn evel_simple_if() {
+    fn eval_if() {
         let inputs = [
             ("if (1 < 2) { 1 } else { 2 };", 1),
             ("if (1 > 2) { 1 } else { 2 };", 2),
+            ("if (1 > 2) { 1 } else { 2; 3; };", 3),
+        ];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_int_object(&object, input.1);
+        }
+    }
+
+    #[test]
+    fn eval_return() {
+        let inputs = [
+            ("{ 1; return 2; 3; }", 2),
+            ("{ 1; { 2 } { return 3; } 4 }", 3),
         ];
 
         for input in inputs {
@@ -248,6 +271,7 @@ mod tests {
             Object::Int(int_object) => {
                 assert_eq!(int_object.val, value);
             }
+            Object::Return(ret_object) => check_int_object(&*ret_object.val, value),
             _ => {
                 panic!("expected int object, but {:?}", object);
             }
@@ -259,6 +283,7 @@ mod tests {
             Object::Bool(bool_object) => {
                 assert_eq!(bool_object.val, value);
             }
+            Object::Return(ret_object) => check_bool_object(&*ret_object.val, value),
             _ => {
                 panic!("expected bool object, but {:?}", object);
             }
