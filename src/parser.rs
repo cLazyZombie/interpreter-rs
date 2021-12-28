@@ -401,8 +401,7 @@ mod tests {
     #[test]
     fn statement_to_string() {
         let input = r#"
-            let a = 10;
-            a;
+            let a = 10; a;
             return a;
         "#;
 

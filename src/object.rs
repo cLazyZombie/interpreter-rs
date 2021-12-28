@@ -5,7 +5,7 @@ use std::{
 
 use crate::eval::EvalError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Object {
     Null,
     Int(IntObject),
@@ -137,7 +137,7 @@ impl TryInto<IntObject> for Object {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IntObject {
     pub val: i32,
 }
@@ -196,7 +196,7 @@ impl From<IntObject> for Object {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BoolObject {
     pub val: bool,
 }
@@ -223,7 +223,7 @@ impl Display for BoolObject {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReturnObject {
     pub val: Box<Object>,
 }

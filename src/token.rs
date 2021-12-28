@@ -107,7 +107,7 @@ impl Display for Token {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct IdentToken(pub String);
 
 impl Display for IdentToken {

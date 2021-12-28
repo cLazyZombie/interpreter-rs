@@ -1,7 +1,8 @@
 use crate::{
     ast::{Expr, Node, Statement},
+    environment::Environment,
     object::{BoolObject, IntObject, Object, ReturnObject},
-    token::Token,
+    token::{IdentToken, Token},
 };
 
 #[derive(Debug)]
@@ -9,21 +10,22 @@ pub enum EvalError {
     FailedToConvertBoolError { original_type: String },
     FailedToConvertIntError { original_type: String },
     InvalidInfixOperator { operator_token: String },
+    UseUndeclaredIdentifier { identifier: IdentToken },
     Todo,
 }
 
-pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
+pub fn eval<'a, N: Into<Node<'a>>>(node: N, envi: &mut Environment) -> Result<Object, EvalError> {
     let node: Node = node.into();
 
     match node {
         Node::Stmt(stmt) => match stmt {
-            Statement::ExprStatement(expr_stmt) => eval(&expr_stmt.expr),
+            Statement::ExprStatement(expr_stmt) => eval(&expr_stmt.expr, envi),
             Statement::BlockStatement(block_stmt) => {
                 let mut result = Object::Null;
 
                 // statement
                 for stmt in &block_stmt.statements {
-                    result = eval(stmt)?;
+                    result = eval(stmt, envi)?;
 
                     if let Object::Return(_) = &result {
                         return Ok(result);
@@ -33,26 +35,37 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
                 Ok(result)
             }
             Statement::ReturnStatement(ret_stmt) => {
-                let inner = eval(&ret_stmt.expr)?;
+                let inner = eval(&ret_stmt.expr, envi)?;
                 let ret = ReturnObject::new(inner);
                 Ok(ret.into())
             }
-            _ => {
-                eprintln!("stmt: {:?}", stmt);
-                todo!()
+            Statement::LetStatement(let_stmt) => {
+                let value = eval(&let_stmt.expr, envi)?;
+                envi.set(let_stmt.ident.clone(), value);
+                Ok(Object::Null)
             }
         },
         Node::Expr(expr) => match expr {
+            Expr::Identifier(ident) => {
+                let value = envi.get(&ident.ident);
+                if let Some(value) = value {
+                    Ok(value)
+                } else {
+                    Err(EvalError::UseUndeclaredIdentifier {
+                        identifier: ident.ident.clone(),
+                    })
+                }
+            }
             Expr::Number(num_expr) => Ok(Object::Int(IntObject::new(num_expr.value))),
             Expr::Bool(bool_expr) => Ok(Object::Bool(BoolObject::new(bool_expr.value))),
             Expr::Prefix(prefix_expr) => match prefix_expr.op {
                 Token::Bang => {
-                    let obj = eval(&*prefix_expr.exp)?;
+                    let obj = eval(&*prefix_expr.exp, envi)?;
                     let bool_obj: BoolObject = obj.try_into()?;
                     Ok(bool_obj.bang().into())
                 }
                 Token::Minus => {
-                    let obj = eval(&*prefix_expr.exp)?;
+                    let obj = eval(&*prefix_expr.exp, envi)?;
                     let int_obj: IntObject = obj.try_into()?;
                     Ok(int_obj.negate().into())
                 }
@@ -61,21 +74,21 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N) -> Result<Object, EvalError> {
                 }
             },
             Expr::If(if_expr) => {
-                let cond = eval(&*if_expr.condition)?;
+                let cond = eval(&*if_expr.condition, envi)?;
                 let bool_cond: BoolObject = cond.try_into()?;
                 if bool_cond.val {
-                    eval(&*if_expr.consequence_statement)
+                    eval(&*if_expr.consequence_statement, envi)
                 } else {
                     if let Some(alternative) = &if_expr.alternative_statement {
-                        eval(&**alternative)
+                        eval(&**alternative, envi)
                     } else {
                         Ok(Object::Null)
                     }
                 }
             }
             Expr::Infix(infix_expr) => {
-                let left = eval(&*infix_expr.left)?;
-                let right = eval(&*infix_expr.right)?;
+                let left = eval(&*infix_expr.left, envi)?;
+                let right = eval(&*infix_expr.right, envi)?;
                 match infix_expr.op {
                     Token::Plus => {
                         let value = left.plus(&right).ok_or(EvalError::Todo)?;
@@ -266,6 +279,19 @@ mod tests {
         }
     }
 
+    #[test]
+    fn eval_let() {
+        let inputs = [
+            ("let a = 10; a;", 10),
+            ("let b = 1; if (b == 1) {10} else {20};", 10),
+        ];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_int_object(&object, input.1);
+        }
+    }
+
     fn check_int_object(object: &Object, value: i32) {
         match object {
             Object::Int(int_object) => {
@@ -293,8 +319,15 @@ mod tests {
     fn eval_input(input: &str) -> Object {
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
-        let mut stmts = parser.parse_statements().unwrap();
-        let stmt = stmts.remove(0);
-        eval(&stmt).unwrap()
+        let stmts = parser.parse_statements().unwrap();
+        // let stmt = stmts.remove(0);
+        let mut envi = Environment::new();
+
+        let mut ret = Object::Null;
+
+        for stmt in stmts {
+            ret = eval(&stmt, &mut envi).unwrap();
+        }
+        ret
     }
 }

@@ -1,6 +1,6 @@
 use std::io::{self, BufRead, Write};
 
-use interpreter_rs::{eval::eval, lexer::Lexer, parser::Parser};
+use interpreter_rs::{environment::Environment, eval::eval, lexer::Lexer, parser::Parser};
 
 fn main() {
     print!(">> ");
@@ -11,10 +11,11 @@ fn main() {
         let lexer = Lexer::new(&line);
         let mut parser = Parser::new(lexer);
         let stmts = parser.parse_statements();
+        let mut envi = Environment::new();
         match stmts {
             Ok(stmts) => {
                 for stmt in stmts {
-                    let object = eval(&stmt);
+                    let object = eval(&stmt, &mut envi);
                     match object {
                         Ok(object) => {
                             println!("{}", object);
