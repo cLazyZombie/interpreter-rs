@@ -3,14 +3,16 @@ use std::collections::HashMap;
 use crate::{object::Object, token::IdentToken};
 
 #[derive(Debug)]
-pub struct Environment {
+pub struct Environment<'a> {
     store: HashMap<IdentToken, Object>,
+    parent: Option<&'a Environment<'a>>,
 }
 
-impl Environment {
+impl<'a> Environment<'a> {
     pub fn new() -> Self {
         Self {
             store: HashMap::new(),
+            parent: None,
         }
     }
 
@@ -18,7 +20,19 @@ impl Environment {
         self.store.insert(ident, obj);
     }
 
+    pub fn set_parent(&mut self, parent: &'a Environment) {
+        self.parent = Some(parent);
+    }
+
     pub fn get(&self, ident: &IdentToken) -> Option<Object> {
-        self.store.get(ident).map(|obj| obj.clone())
+        if let Some(obj) = self.store.get(ident).map(|obj| obj.clone()) {
+            Some(obj)
+        } else {
+            if let Some(parent) = self.parent {
+                parent.get(ident)
+            } else {
+                None
+            }
+        }
     }
 }

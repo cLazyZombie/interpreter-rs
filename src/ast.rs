@@ -60,7 +60,7 @@ impl<'a> From<&'a Expr> for Node<'a> {
 //     }
 // }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     LetStatement(LetStatement),
     ReturnStatement(ReturnStatement),
@@ -80,7 +80,7 @@ impl Display for Statement {
         }
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LetStatement {
     pub ident: IdentToken,
     pub expr: Expr,
@@ -98,7 +98,7 @@ impl Display for LetStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReturnStatement {
     pub expr: Expr,
 }
@@ -115,7 +115,7 @@ impl Display for ReturnStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExprStatement {
     pub expr: Expr,
 }
@@ -132,7 +132,7 @@ impl Display for ExprStatement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }
@@ -153,7 +153,7 @@ impl From<BlockStatement> for Statement {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Identifier(IdentExpr),
     Number(NumberExpr),
@@ -202,13 +202,13 @@ impl Display for Expr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PrefixExpr {
     pub op: Token,
     pub exp: Box<Expr>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IdentExpr {
     pub ident: IdentToken,
 }
@@ -219,7 +219,7 @@ impl Display for IdentExpr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NumberExpr {
     pub value: i32,
 }
@@ -230,7 +230,7 @@ impl Display for NumberExpr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BoolExpr {
     pub value: bool,
 }
@@ -241,7 +241,7 @@ impl Display for BoolExpr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct InfixExpr {
     pub left: Box<Expr>,
     pub op: Token,
@@ -258,7 +258,7 @@ impl InfixExpr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IfExpr {
     pub condition: Box<Expr>,
     pub consequence_statement: Box<Statement>, // should be BlockStatement
@@ -278,16 +278,15 @@ impl Display for IfExpr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FuncExpr {
-    pub name: IdentToken,
     pub args: Vec<IdentToken>,
-    pub block_statement: BlockStatement,
+    pub body: Box<Statement>,
 }
 
 impl Display for FuncExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "fn {}(", self.name)?;
+        write!(f, "fn (")?;
         for (i, arg) in self.args.iter().enumerate() {
             if i != 0 {
                 write!(f, ", ")?;
@@ -296,12 +295,12 @@ impl Display for FuncExpr {
             write!(f, "{}", arg)?;
         }
         write!(f, ")")?;
-        self.block_statement.fmt(f)
+        self.body.fmt(f)
         // write!(f, "{}", self.block_statement)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CallExpr {
     pub fn_name: IdentToken,
     pub args: Vec<Expr>,

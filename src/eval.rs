@@ -1,7 +1,7 @@
 use crate::{
     ast::{Expr, Node, Statement},
     environment::Environment,
-    object::{BoolObject, IntObject, Object, ReturnObject},
+    object::{BoolObject, FnObject, IntObject, Object, ReturnObject},
     token::{IdentToken, Token},
 };
 
@@ -11,6 +11,7 @@ pub enum EvalError {
     FailedToConvertIntError { original_type: String },
     InvalidInfixOperator { operator_token: String },
     UseUndeclaredIdentifier { identifier: IdentToken },
+    FnArgCountMismatch { expected: usize, actual: usize },
     Todo,
 }
 
@@ -135,8 +136,38 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N, envi: &mut Environment) -> Result<Ob
                     }),
                 }
             }
-            _ => {
-                todo!()
+            Expr::Function(fn_expr) => {
+                let stmt = <Statement as Clone>::clone(&fn_expr.body);
+                let fn_obj = FnObject {
+                    args: fn_expr.args.clone(),
+                    body: stmt,
+                };
+                Ok(fn_obj.into())
+            }
+            Expr::Call(fn_call) => {
+                if let Some(Object::Fn(fn_obj)) = envi.get(&fn_call.fn_name) {
+                    // check argument count match
+                    if fn_call.args.len() != fn_obj.args.len() {
+                        return Err(EvalError::FnArgCountMismatch {
+                            expected: fn_obj.args.len(),
+                            actual: fn_call.args.len(),
+                        });
+                    }
+
+                    // set parameter to local environment
+                    let mut local_envi = Environment::new();
+                    for (arg_name, arg_expr) in fn_obj.args.iter().zip(fn_call.args.iter()) {
+                        let arg_value = eval(arg_expr, envi)?; // parameter를 eval할때는 local_envi를 사용하면 안됨
+                        local_envi.set(arg_name.clone(), arg_value);
+                    }
+
+                    local_envi.set_parent(envi);
+                    let value = eval(&fn_obj.body, &mut local_envi)?;
+                    Ok(value)
+                } else {
+                    eprintln!("{} is not declared", fn_call.fn_name);
+                    todo!()
+                }
             }
         },
     }
@@ -284,6 +315,23 @@ mod tests {
         let inputs = [
             ("let a = 10; a;", 10),
             ("let b = 1; if (b == 1) {10} else {20};", 10),
+        ];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_int_object(&object, input.1);
+        }
+    }
+
+    #[test]
+    fn eval_fn() {
+        let inputs = [
+            ("let a = fn (a, b) { a + b }; a(1, 2);", 3),
+            ("let a = fn (i) { i * 2 }; a(2);", 4),
+            (
+                "let a = fn (a) { a * 2 }; let b = fn (a, b) { a - b }; b(5, a(2));",
+                1,
+            ),
         ];
 
         for input in inputs {

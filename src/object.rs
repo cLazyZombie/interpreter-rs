@@ -3,7 +3,7 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
-use crate::eval::EvalError;
+use crate::{ast::Statement, eval::EvalError, token::IdentToken};
 
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -11,6 +11,7 @@ pub enum Object {
     Int(IntObject),
     Bool(BoolObject),
     Return(ReturnObject),
+    Fn(FnObject),
 }
 
 impl Object {
@@ -100,6 +101,7 @@ impl Display for Object {
             Object::Null => {
                 write!(f, "null")
             }
+            Object::Fn(fn_object) => fn_object.fmt(f),
         }
     }
 }
@@ -120,6 +122,9 @@ impl TryInto<BoolObject> for Object {
                 let obj = *val;
                 obj.try_into()
             }
+            Object::Fn(_) => Err(EvalError::FailedToConvertBoolError {
+                original_type: "Fn".to_string(),
+            }),
         }
     }
 }
@@ -243,5 +248,33 @@ impl Display for ReturnObject {
 impl From<ReturnObject> for Object {
     fn from(ret: ReturnObject) -> Self {
         Object::Return(ret)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FnObject {
+    pub args: Vec<IdentToken>,
+    pub body: Statement, // should be BlockStatement,
+}
+
+impl Display for FnObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "fn (")?;
+        for (idx, param) in self.args.iter().enumerate() {
+            if idx != 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}", param.to_string())?;
+        }
+
+        write!(f, ") {{")?;
+
+        self.body.fmt(f)
+    }
+}
+
+impl From<FnObject> for Object {
+    fn from(fn_obj: FnObject) -> Self {
+        Object::Fn(fn_obj)
     }
 }

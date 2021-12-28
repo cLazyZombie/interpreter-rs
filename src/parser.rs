@@ -224,7 +224,7 @@ impl Parser {
         self.expect_token(Token::Function)?;
 
         // name
-        let fn_name = self.parse_identifier()?;
+        // let fn_name = self.parse_identifier()?;
 
         // args
         let mut args = Vec::new();
@@ -247,9 +247,8 @@ impl Parser {
         let block_statement = self.parse_block_statement()?;
 
         let fn_expr = FuncExpr {
-            name: fn_name,
             args,
-            block_statement,
+            body: Box::new(Statement::BlockStatement(block_statement)),
         };
 
         Ok(Expr::Function(fn_expr))
@@ -551,20 +550,20 @@ mod tests {
     #[test]
     fn test_fn_expr() {
         let input = r#"
-            fn my_func_1() { return a + b; };
-            fn my_func_2(a) { return a + b; };
-            fn my_func_3(a, b, c) { return a + b; };
+            fn() { return a + b; };
+            fn(a) { return a + b; };
+            fn (a, b, c) { return a + b; };
         "#;
 
         let stmts = input_to_statements(input);
         let expr_stmt = get_expr_statement(&stmts[0]).unwrap();
-        check_fn_expr(&expr_stmt.expr, "my_func_1", &[]);
+        check_fn_expr(&expr_stmt.expr, &[]);
 
         let expr_stmt = get_expr_statement(&stmts[1]).unwrap();
-        check_fn_expr(&expr_stmt.expr, "my_func_2", &["a"]);
+        check_fn_expr(&expr_stmt.expr, &["a"]);
 
         let expr_stmt = get_expr_statement(&stmts[2]).unwrap();
-        check_fn_expr(&expr_stmt.expr, "my_func_3", &["a", "b", "c"]);
+        check_fn_expr(&expr_stmt.expr, &["a", "b", "c"]);
     }
 
     #[test]
@@ -600,9 +599,9 @@ mod tests {
         }
     }
 
-    fn check_fn_expr(expr: &Expr, name: &str, args: &[&str]) {
+    fn check_fn_expr(expr: &Expr, args: &[&str]) {
         let fn_expr = get_function_expr(expr).unwrap();
-        assert_eq!(fn_expr.name.0, name);
+        // assert_eq!(fn_expr.name.0, name);
         assert_eq!(fn_expr.args.len(), args.len());
         args.iter()
             .zip(&fn_expr.args)
