@@ -188,7 +188,6 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N, envi: &mut Environment) -> Result<Ob
                     let value = eval(&fn_obj.body, &mut local_envi)?;
                     Ok(value)
                 } else {
-                    eprintln!("{} is not declared", fn_call.func);
                     todo!()
                 }
             }
@@ -357,6 +356,7 @@ mod tests {
             ),
             ("fn(x) { x }(5);", 5),
             ("fn(x) { return x * 2; 5; }(5);", 10),
+            // ("fn(x) { fn (y) { x + y }; }(1)(2);", 3), // todoß
         ];
 
         for input in inputs {

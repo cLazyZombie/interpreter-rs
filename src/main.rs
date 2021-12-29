@@ -6,12 +6,12 @@ fn main() {
     print!(">> ");
     let _ = io::stdout().lock().flush();
 
+    let mut envi = Environment::new();
     for line in io::stdin().lock().lines() {
         let line = line.unwrap();
         let lexer = Lexer::new(&line);
         let mut parser = Parser::new(lexer);
         let stmts = parser.parse_statements();
-        let mut envi = Environment::new();
         match stmts {
             Ok(stmts) => {
                 for stmt in stmts {
