@@ -571,20 +571,6 @@ mod tests {
     }
 
     #[test]
-    fn test_fn_call_temp() {
-        let input = r#"
-            my_func();
-        "#;
-
-        let stmts = input_to_statements(input);
-
-        let stmt = get_expr_statement(&stmts[0]).unwrap();
-        let call = get_call_expr(&stmt.expr).unwrap();
-        assert_eq!(call.func.to_string(), "my_func");
-        assert_eq!(call.args.len(), 0);
-    }
-
-    #[test]
     fn test_fn_call() {
         let input = r#"
             my_func();

@@ -356,6 +356,7 @@ mod tests {
                 1,
             ),
             ("fn(x) { x }(5);", 5),
+            ("fn(x) { return x * 2; 5; }(5);", 10),
         ];
 
         for input in inputs {
