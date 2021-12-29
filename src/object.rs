@@ -3,7 +3,11 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
-use crate::{ast::Statement, eval::EvalError, token::IdentToken};
+use crate::{
+    ast::Statement,
+    eval::{EvalError, FailedToConvertBoolError, FailedToConvertIntError},
+    token::IdentToken,
+};
 
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -122,9 +126,10 @@ impl TryInto<BoolObject> for Object {
                 let obj = *val;
                 obj.try_into()
             }
-            Object::Fn(_) => Err(EvalError::FailedToConvertBoolError {
+            Object::Fn(_) => FailedToConvertBoolError {
                 original_type: "Fn".to_string(),
-            }),
+            }
+            .fail(),
         }
     }
 }
@@ -135,9 +140,10 @@ impl TryInto<IntObject> for Object {
     fn try_into(self) -> Result<IntObject, Self::Error> {
         match self {
             Object::Int(i) => Ok(i),
-            _ => Err(Self::Error::FailedToConvertIntError {
+            _ => FailedToConvertIntError {
                 original_type: self.to_string(),
-            }),
+            }
+            .fail(),
         }
     }
 }

@@ -11,3 +11,4 @@ edition = "2021"
 # src = "src/main.rs"
 
 [dependencies]
+snafu = {version = "0.6", features = ["backtraces"]}

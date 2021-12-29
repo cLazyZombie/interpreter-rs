@@ -1,3 +1,5 @@
+use snafu::{Backtrace, Snafu};
+
 use crate::{
     ast::{self, CallExpr, Expr, FuncExpr, InfixExpr, Statement},
     lexer::Lexer,
@@ -9,11 +11,11 @@ pub struct Parser {
     cursor: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Snafu)]
 pub enum ParseError {
-    NormalError(String),
-    NoMoreToken(String),
-    UnexpectedToken(String),
+    NormalError { msg: String, backtrace: Backtrace },
+    NoMoreToken { msg: String, backtrace: Backtrace },
+    UnexpectedToken { msg: String, backtrace: Backtrace },
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd)]
@@ -84,7 +86,10 @@ impl Parser {
             };
             Ok(statement)
         } else {
-            Err(ParseError::NoMoreToken("to parse statement".to_string()))
+            NoMoreToken {
+                msg: "to parse statement".to_string(),
+            }
+            .fail()
         }
     }
 
@@ -96,7 +101,7 @@ impl Parser {
         // assign
         if !matches!(self.cur_token(), Some(Token::Assign)) {
             let err = format!("Token::Assign is expected, but {:?}", self.cur_token());
-            return Err(ParseError::UnexpectedToken(err));
+            return UnexpectedToken { msg: err }.fail();
         }
         self.advancd_token();
 
@@ -121,9 +126,12 @@ impl Parser {
     }
 
     fn parse_identifier(&mut self) -> Result<IdentToken, ParseError> {
-        let id_token = self
-            .cur_token()
-            .ok_or_else(|| ParseError::NoMoreToken("identifier token is missing".to_string()))?;
+        let id_token = self.cur_token().ok_or_else(|| {
+            NoMoreToken {
+                msg: "identifier token is missing".to_string(),
+            }
+            .build()
+        })?;
 
         match id_token {
             Token::Ident(ident) => {
@@ -133,15 +141,18 @@ impl Parser {
             }
             _ => {
                 let err = format!("Token::Iden is needed, but {:?}", id_token);
-                Err(ParseError::UnexpectedToken(err))
+                UnexpectedToken { msg: err }.fail()
             }
         }
     }
 
     fn parse_prefix_expr(&mut self) -> Result<Expr, ParseError> {
-        let tok = self
-            .cur_token()
-            .ok_or_else(|| ParseError::NoMoreToken("when parse prefix".to_string()))?;
+        let tok = self.cur_token().ok_or_else(|| {
+            NoMoreToken {
+                msg: "when parse prefix".to_string(),
+            }
+            .build()
+        })?;
 
         let next_tok = self.next_token();
 
@@ -157,7 +168,7 @@ impl Parser {
             (tok, _) => {
                 let result = Expr::new_single_expr(tok.clone()).ok_or_else(|| {
                     let err = format!("expr token expected, but {:?}", tok);
-                    ParseError::UnexpectedToken(err)
+                    UnexpectedToken { msg: err }.build()
                 })?;
 
                 self.advancd_token();
@@ -253,12 +264,12 @@ impl Parser {
     fn expect_token(&mut self, expected_tok: Token) -> Result<Token, ParseError> {
         let cur_token = self.cur_token().ok_or_else(|| {
             let msg = format!("expectd {:?}, but no more token", expected_tok);
-            ParseError::NoMoreToken(msg)
+            NoMoreToken { msg }.build()
         })?;
 
         if cur_token != expected_tok {
             let msg = format!("expected {:?}, but {:?}", expected_tok, cur_token);
-            return Err(ParseError::UnexpectedToken(msg));
+            return UnexpectedToken { msg }.fail();
         }
 
         self.advancd_token();

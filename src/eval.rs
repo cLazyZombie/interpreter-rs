@@ -1,3 +1,5 @@
+use snafu::{Backtrace, Snafu};
+
 use crate::{
     ast::{Expr, Node, Statement},
     environment::Environment,
@@ -5,13 +7,30 @@ use crate::{
     token::{IdentToken, Token},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Snafu)]
+#[snafu(visibility(pub(crate)))]
 pub enum EvalError {
-    FailedToConvertBoolError { original_type: String },
-    FailedToConvertIntError { original_type: String },
-    InvalidInfixOperator { operator_token: String },
-    UseUndeclaredIdentifier { identifier: IdentToken },
-    FnArgCountMismatch { expected: usize, actual: usize },
+    FailedToConvertBoolError {
+        original_type: String,
+        backtrace: Backtrace,
+    },
+    FailedToConvertIntError {
+        original_type: String,
+        backtrace: Backtrace,
+    },
+    InvalidInfixOperator {
+        operator_token: String,
+        backtrace: Backtrace,
+    },
+    UseUndeclaredIdentifier {
+        identifier: IdentToken,
+        backtrace: Backtrace,
+    },
+    FnArgCountMismatch {
+        expected: usize,
+        actual: usize,
+        backtrace: Backtrace,
+    },
     Todo,
 }
 
@@ -52,9 +71,10 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N, envi: &mut Environment) -> Result<Ob
                 if let Some(value) = value {
                     Ok(value)
                 } else {
-                    Err(EvalError::UseUndeclaredIdentifier {
+                    UseUndeclaredIdentifier {
                         identifier: ident.ident.clone(),
-                    })
+                    }
+                    .fail()
                 }
             }
             Expr::Number(num_expr) => Ok(Object::Int(IntObject::new(num_expr.value))),
@@ -131,9 +151,10 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N, envi: &mut Environment) -> Result<Ob
                         let value = left.gt_eq(&right).ok_or(EvalError::Todo)?;
                         Ok(value)
                     }
-                    _ => Err(EvalError::InvalidInfixOperator {
+                    _ => InvalidInfixOperator {
                         operator_token: infix_expr.op.to_string(),
-                    }),
+                    }
+                    .fail(),
                 }
             }
             Expr::Function(fn_expr) => {
@@ -149,10 +170,11 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N, envi: &mut Environment) -> Result<Ob
                 if let Object::Fn(fn_obj) = fn_obj {
                     // check argument count match
                     if fn_call.args.len() != fn_obj.args.len() {
-                        return Err(EvalError::FnArgCountMismatch {
+                        return FnArgCountMismatch {
                             expected: fn_obj.args.len(),
                             actual: fn_call.args.len(),
-                        });
+                        }
+                        .fail();
                     }
 
                     // set parameter to local environment
