@@ -154,7 +154,6 @@ impl Parser {
             (Token::LParen, _) => self.parse_group_expr()?,
             (Token::If, _) => self.parse_if_expr()?,
             (Token::Function, _) => self.parse_function_expr()?,
-            (Token::Ident(_), Some(Token::LParen)) => self.parse_call_expr()?,
             (tok, _) => {
                 let result = Expr::new_single_expr(tok.clone()).ok_or_else(|| {
                     let err = format!("expr token expected, but {:?}", tok);
@@ -167,21 +166,6 @@ impl Parser {
         };
 
         Ok(exp)
-    }
-
-    fn parse_call_expr(&mut self) -> Result<Expr, ParseError> {
-        if let Some(Token::Ident(ident_token)) = self.cur_token() {
-            self.advancd_token();
-            let args = self.parse_call_argument_expr()?;
-
-            Ok(Expr::Call(CallExpr {
-                fn_name: ident_token,
-                args,
-            }))
-        } else {
-            let msg = format!("identifier token expected, but {:?}", self.cur_token());
-            Err(ParseError::UnexpectedToken(msg))
-        }
     }
 
     fn parse_group_expr(&mut self) -> Result<Expr, ParseError> {
@@ -320,10 +304,19 @@ impl Parser {
             if cur_token.is_infix_op() {
                 let cur_precedence = cur_token.precedence().unwrap(); // infix token should have precedencd
                 if cur_precedence > precedence {
-                    self.advancd_token();
-                    let right_expr = self.parse_expr(cur_precedence)?;
-
-                    result = Expr::Infix(InfixExpr::new(result, cur_token, right_expr));
+                    // function call
+                    if cur_token == Token::LParen {
+                        let args_expr = self.parse_call_argument_expr()?;
+                        result = Expr::Call(CallExpr {
+                            func: Box::new(result),
+                            args: args_expr,
+                        });
+                        // result = self.parse_call_expr()?;
+                    } else {
+                        self.advancd_token();
+                        let right_expr = self.parse_expr(cur_precedence)?;
+                        result = Expr::Infix(InfixExpr::new(result, cur_token, right_expr));
+                    }
                     continue;
                 }
             }
@@ -567,29 +560,49 @@ mod tests {
     }
 
     #[test]
-    fn test_fn_call() {
+    fn test_fn_call_temp() {
         let input = r#"
             my_func();
-            my_func(1, 2);
-            my_func2(my_func(1, 2), 3);
         "#;
 
         let stmts = input_to_statements(input);
 
         let stmt = get_expr_statement(&stmts[0]).unwrap();
         let call = get_call_expr(&stmt.expr).unwrap();
-        assert_eq!(call.fn_name.0, "my_func");
+        assert_eq!(call.func.to_string(), "my_func");
+        assert_eq!(call.args.len(), 0);
+    }
+
+    #[test]
+    fn test_fn_call() {
+        let input = r#"
+            my_func();
+            my_func(1, 2);
+            my_func2(my_func(1, 2), 3);
+            fn (x) { x * 2} (10);
+        "#;
+
+        let stmts = input_to_statements(input);
+
+        let stmt = get_expr_statement(&stmts[0]).unwrap();
+        let call = get_call_expr(&stmt.expr).unwrap();
+        assert_eq!(call.func.to_string(), "my_func");
         assert_eq!(call.args.len(), 0);
 
         let stmt = get_expr_statement(&stmts[1]).unwrap();
         let call = get_call_expr(&stmt.expr).unwrap();
-        assert_eq!(call.fn_name.0, "my_func");
+        assert_eq!(call.func.to_string(), "my_func");
         assert_eq!(call.args.len(), 2);
 
         let stmt = get_expr_statement(&stmts[2]).unwrap();
         let call = get_call_expr(&stmt.expr).unwrap();
-        assert_eq!(call.fn_name.0, "my_func2");
+        assert_eq!(call.func.to_string(), "my_func2");
         assert_eq!(call.args.len(), 2);
+
+        let stmt = get_expr_statement(&stmts[3]).unwrap();
+        let call = get_call_expr(&stmt.expr).unwrap();
+        assert_eq!(call.func.to_string(), "fn (x){\n(x * 2);\n}\n");
+        assert_eq!(call.args.len(), 1);
     }
 
     fn get_call_expr(expr: &Expr) -> Option<&CallExpr> {

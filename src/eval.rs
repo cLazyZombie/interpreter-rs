@@ -145,7 +145,8 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N, envi: &mut Environment) -> Result<Ob
                 Ok(fn_obj.into())
             }
             Expr::Call(fn_call) => {
-                if let Some(Object::Fn(fn_obj)) = envi.get(&fn_call.fn_name) {
+                let fn_obj = eval(&*fn_call.func, envi)?;
+                if let Object::Fn(fn_obj) = fn_obj {
                     // check argument count match
                     if fn_call.args.len() != fn_obj.args.len() {
                         return Err(EvalError::FnArgCountMismatch {
@@ -165,7 +166,7 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N, envi: &mut Environment) -> Result<Ob
                     let value = eval(&fn_obj.body, &mut local_envi)?;
                     Ok(value)
                 } else {
-                    eprintln!("{} is not declared", fn_call.fn_name);
+                    eprintln!("{} is not declared", fn_call.func);
                     todo!()
                 }
             }
@@ -332,6 +333,7 @@ mod tests {
                 "let a = fn (a) { a * 2 }; let b = fn (a, b) { a - b }; b(5, a(2));",
                 1,
             ),
+            ("fn(x) { x }(5);", 5),
         ];
 
         for input in inputs {

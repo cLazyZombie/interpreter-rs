@@ -48,18 +48,6 @@ impl<'a> From<&'a Expr> for Node<'a> {
     }
 }
 
-// impl From<Statement> for Node {
-//     fn from(stmt: Statement) -> Self {
-//         Node::Stmt(stmt)
-//     }
-// }
-
-// impl From<Expr> for Node {
-//     fn from(expr: Expr) -> Self {
-//         Node::Expr(expr)
-//     }
-// }
-
 #[derive(Debug, Clone)]
 pub enum Statement {
     LetStatement(LetStatement),
@@ -302,13 +290,13 @@ impl Display for FuncExpr {
 
 #[derive(Debug, Clone)]
 pub struct CallExpr {
-    pub fn_name: IdentToken,
+    pub func: Box<Expr>,
     pub args: Vec<Expr>,
 }
 
 impl Display for CallExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}(", self.fn_name)?;
+        write!(f, "{}(", self.func)?;
         for (i, arg) in self.args.iter().enumerate() {
             if i != 0 {
                 write!(f, ", ")?;
