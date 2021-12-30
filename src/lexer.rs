@@ -72,6 +72,17 @@ impl<'a> Lexer<'a> {
             }
             '{' => Token::LBrace,
             '}' => Token::RBrace,
+            '"' => {
+                let mut s = String::new();
+                while let Some(ch) = self.take_next_char() {
+                    if ch == '"' {
+                        break;
+                    }
+                    s.push(ch);
+                }
+
+                Token::String(s)
+            }
             _ => {
                 if next_char.is_letter() {
                     let iden_str = self.read_identifier(next_char);
@@ -236,6 +247,27 @@ mod tests {
             Token::Int(5),
             Token::Semicolon,
             Token::EOF,
+        ];
+
+        for tok in expected_tokens {
+            assert_eq!(lexer.next_token(), Some(tok));
+        }
+    }
+
+    #[test]
+    fn tokenize_string() {
+        let input = r#"
+            let a = "abcd";
+        "#;
+
+        let mut lexer = Lexer::new(input);
+
+        let expected_tokens = [
+            Token::Let,
+            Token::Ident(IdentToken("a".to_string())),
+            Token::Assign,
+            Token::String("abcd".to_string()),
+            Token::Semicolon,
         ];
 
         for tok in expected_tokens {
