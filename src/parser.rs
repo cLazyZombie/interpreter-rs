@@ -341,7 +341,8 @@ impl Parser {
 #[cfg(test)]
 mod tests {
     use crate::ast::{
-        BlockStatement, CallExpr, ExprStatement, IfExpr, InfixExpr, PrefixExpr, Statement,
+        BlockStatement, CallExpr, ExprStatement, IfExpr, InfixExpr, LetStatement, PrefixExpr,
+        Statement,
     };
 
     use super::*;
@@ -356,6 +357,18 @@ mod tests {
         assert_eq!(program.statement_count(), 1);
 
         check_let_statement(program.get_statement(0).unwrap(), "val");
+    }
+
+    #[test]
+    fn let_string_assign() {
+        let input = "let a = \"abc\";";
+        let lexer = Lexer::new(input);
+        let parser = Parser::new(lexer);
+
+        let program = parser.parse_program().unwrap();
+        let let_stmt = get_let_statement(program.get_statement(0).unwrap()).unwrap();
+
+        check_string_expr(&let_stmt.expr, "abc");
     }
 
     #[test]
@@ -669,6 +682,13 @@ mod tests {
         }
     }
 
+    fn get_let_statement(stmt: &Statement) -> Option<&LetStatement> {
+        match stmt {
+            ast::Statement::LetStatement(let_stmt) => Some(let_stmt),
+            _ => None,
+        }
+    }
+
     fn get_prefix_expr(expr: &Expr) -> Option<&PrefixExpr> {
         match expr {
             Expr::Prefix(prefix) => Some(prefix),
@@ -689,6 +709,15 @@ mod tests {
                 assert_eq!(num.value, value);
             }
             _ => panic!("expected number expr, but {:?}", expr),
+        }
+    }
+
+    fn check_string_expr(expr: &Expr, value: &str) {
+        match expr {
+            Expr::String(str_expr) => {
+                assert_eq!(str_expr.value, value);
+            }
+            _ => panic!("expected string expr, but {:?}", expr),
         }
     }
 

@@ -145,6 +145,7 @@ impl From<BlockStatement> for Statement {
 pub enum Expr {
     Identifier(IdentExpr),
     Number(NumberExpr),
+    String(StringExpr),
     Bool(BoolExpr),
     Prefix(PrefixExpr),
     Infix(InfixExpr),
@@ -161,6 +162,7 @@ impl Expr {
             Token::Int(value) => Some(Expr::Number(NumberExpr { value })),
             Token::True => Some(Expr::Bool(BoolExpr { value: true })),
             Token::False => Some(Expr::Bool(BoolExpr { value: false })),
+            Token::String(s) => Some(Expr::String(StringExpr { value: s })),
             _ => None,
         }
     }
@@ -178,6 +180,7 @@ impl Display for Expr {
         match self {
             Expr::Identifier(identifier) => write!(f, "{}", identifier),
             Expr::Number(number) => write!(f, "{}", number),
+            Expr::String(string_expr) => string_expr.fmt(f),
             Expr::Bool(boolean) => write!(f, "{}", boolean),
             Expr::Prefix(prefix) => {
                 write!(f, "{}{}", prefix.op, prefix.exp)
@@ -213,6 +216,17 @@ pub struct NumberExpr {
 }
 
 impl Display for NumberExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct StringExpr {
+    pub value: String,
+}
+
+impl Display for StringExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }

@@ -15,6 +15,7 @@ pub enum Object {
     Int(IntObject),
     Bool(BoolObject),
     Return(ReturnObject),
+    String(StringObject),
     Fn(FnObject),
 }
 
@@ -101,6 +102,7 @@ impl Display for Object {
         match self {
             Object::Int(int_object) => int_object.fmt(f),
             Object::Bool(bool_object) => bool_object.fmt(f),
+            Object::String(string_object) => string_object.fmt(f),
             Object::Return(return_object) => return_object.fmt(f),
             Object::Null => {
                 write!(f, "null")
@@ -126,6 +128,10 @@ impl TryInto<BoolObject> for Object {
                 let obj = *val;
                 obj.try_into()
             }
+            Object::String(string_obj) => FailedToConvertBoolError {
+                original_type: format!("\"{}\"", string_obj.val),
+            }
+            .fail(),
             Object::Fn(_) => FailedToConvertBoolError {
                 original_type: "Fn".to_string(),
             }
@@ -234,6 +240,28 @@ impl Display for BoolObject {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StringObject {
+    pub val: String,
+}
+
+impl StringObject {
+    pub fn new(val: String) -> Self {
+        Self { val }
+    }
+}
+
+impl From<StringObject> for Object {
+    fn from(b: StringObject) -> Self {
+        Object::String(b)
+    }
+}
+
+impl Display for StringObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.val)
+    }
+}
 #[derive(Debug, Clone)]
 pub struct ReturnObject {
     pub val: Box<Object>,

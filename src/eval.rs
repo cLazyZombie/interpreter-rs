@@ -3,7 +3,7 @@ use snafu::{Backtrace, Snafu};
 use crate::{
     ast::{Expr, Node, Statement},
     environment::Environment,
-    object::{BoolObject, FnObject, IntObject, Object, ReturnObject},
+    object::{BoolObject, FnObject, IntObject, Object, ReturnObject, StringObject},
     token::{IdentToken, Token},
 };
 
@@ -79,6 +79,9 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N, envi: &mut Environment) -> Result<Ob
             }
             Expr::Number(num_expr) => Ok(Object::Int(IntObject::new(num_expr.value))),
             Expr::Bool(bool_expr) => Ok(Object::Bool(BoolObject::new(bool_expr.value))),
+            Expr::String(string_expr) => {
+                Ok(Object::String(StringObject::new(string_expr.value.clone())))
+            }
             Expr::Prefix(prefix_expr) => match prefix_expr.op {
                 Token::Bang => {
                     let obj = eval(&*prefix_expr.exp, envi)?;
