@@ -50,10 +50,9 @@ impl Object {
 
     pub fn eq(&self, rhs: &Self) -> Option<Object> {
         match (self, rhs) {
-            (Object::Int(lhs), Object::Int(rhs)) => Some(Object::Bool(BoolObject::new(lhs == rhs))),
-            (Object::Bool(lhs), Object::Bool(rhs)) => {
-                Some(Object::Bool(BoolObject::new(lhs == rhs)))
-            }
+            (Object::Int(lhs), Object::Int(rhs)) => Some(BoolObject::new(lhs == rhs).into()),
+            (Object::Bool(lhs), Object::Bool(rhs)) => Some(BoolObject::new(lhs == rhs).into()),
+            (Object::String(lhs), Object::String(rhs)) => Some(BoolObject::new(lhs == rhs).into()),
             _ => None,
         }
     }
@@ -259,7 +258,7 @@ impl From<StringObject> for Object {
 
 impl Display for StringObject {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.val)
+        write!(f, "\"{}\"", self.val)
     }
 }
 #[derive(Debug, Clone)]

@@ -19,6 +19,7 @@ pub enum EvalError {
         backtrace: Backtrace,
     },
     InvalidInfixOperator {
+        // todo. left, right object도 argument로
         operator_token: String,
         backtrace: Backtrace,
     },
@@ -131,7 +132,12 @@ pub fn eval<'a, N: Into<Node<'a>>>(node: N, envi: &mut Environment) -> Result<Ob
                         Ok(value)
                     }
                     Token::Eq => {
-                        let value = left.eq(&right).ok_or(EvalError::Todo)?;
+                        let value = left.eq(&right).ok_or(
+                            InvalidInfixOperator {
+                                operator_token: format!("invalid operator {} == {}", left, right),
+                            }
+                            .build(),
+                        )?;
                         Ok(value)
                     }
                     Token::NotEq => {
@@ -225,6 +231,16 @@ mod tests {
     }
 
     #[test]
+    fn eval_string() {
+        let inputs = [("\"ab\"", "ab"), ("\"ab cd\"", "ab cd")];
+
+        for input in inputs {
+            let object = eval_input(input.0);
+            check_string_object(&object, input.1);
+        }
+    }
+
+    #[test]
     fn eval_prefix_bang() {
         let inputs = [
             ("!true", false),
@@ -283,6 +299,9 @@ mod tests {
             ("false == false", true),
             ("true == false", false),
             ("true != false", true),
+            ("\"aa\" == \"aa\"", true),
+            ("\"aa\" == \"ab\"", false),
+            ("\"aa\" != \"aa\"", false),
         ];
 
         for input in inputs {
@@ -376,6 +395,18 @@ mod tests {
             Object::Return(ret_object) => check_int_object(&*ret_object.val, value),
             _ => {
                 panic!("expected int object, but {:?}", object);
+            }
+        }
+    }
+
+    fn check_string_object(object: &Object, value: &str) {
+        match object {
+            Object::String(string_object) => {
+                assert_eq!(string_object.val, value);
+            }
+            Object::Return(ret_object) => check_string_object(&*ret_object.val, value),
+            _ => {
+                panic!("expected string object, but {:?}", object);
             }
         }
     }
